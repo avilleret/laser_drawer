@@ -1,0 +1,10 @@
+march 2013
+Antoine Villeret - EnsadLab
+
+Laser_driver is a drop in replacement for Zeliac Server from Sonatronic.
+Contrary to Zeliac server, this Puredata based server :
+	- is open source
+	- is not dedicated to a given hardware
+
+This works with any sound card supported by puredata (but you should remove the DC offset filter
+

@@ -1,0 +1,7 @@
+#N canvas 601 234 450 300 10;
+#X declare -path bin;
+#X obj 38 17 declare -path bin;
+#X obj 38 47 udpreceive 3265;
+#X obj 38 69 print;
+#X obj 200 109 udp2table;
+#X connect 1 0 2 0;
