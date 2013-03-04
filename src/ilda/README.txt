@@ -36,3 +36,8 @@ for each point :
 < 2 bytes (MSB first) : x >
 < 2 bytes (MSB first) : y >
 
+TODO:
+- add perspective correction on server side,
+- add geometrie correction on server side
+- add ILDA and GAL files reading
+- add OSC input

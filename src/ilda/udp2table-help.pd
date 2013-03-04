@@ -1,7 +1,7 @@
-#N canvas 72 614 748 388 10;
+#N canvas 63 567 994 388 10;
 #X text 94 36 this is an example help file;
 #X obj 177 87 hsl 128 15 0 127 0 0 empty empty empty -2 -8 0 10 -262144
--1 -1 5300 1;
+-1 -1 0 1;
 #X msg 93 79 rats;
 #N canvas 347 176 494 344 META 0;
 #X text 12 105 HELP_PATCH_AUTHORS "pd meta" information added by Jonathan
@@ -31,11 +31,23 @@ Wilkes for Pd version 0.42.;
 #X floatatom 439 314 5 0 0 0 - - -;
 #X obj 493 254 print;
 #X obj 120 218 route settings;
+#X obj 835 30 table drawX 32;
+#X obj 835 50 table drawY 32;
+#X msg 405 56 settab x foo;
+#X msg 405 79 settab x drawX;
+#X obj 835 70 table drawR 32;
+#X obj 835 90 table drawG 32;
+#X obj 835 110 table drawB 32;
+#X msg 401 109 settab x drawX y drawY r drawR g drawG b drawB;
+#X obj 319 185 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144
+-1 -1;
+#X obj 568 80 loadbang;
 #X connect 1 0 4 0;
 #X connect 2 0 4 0;
 #X connect 4 0 21 0;
 #X connect 4 0 22 0;
 #X connect 5 0 4 0;
+#X connect 6 0 31 0;
 #X connect 6 0 4 0;
 #X connect 7 0 8 0;
 #X connect 7 1 9 0;
@@ -51,3 +63,7 @@ Wilkes for Pd version 0.42.;
 #X connect 7 11 19 0;
 #X connect 7 12 20 0;
 #X connect 22 0 7 0;
+#X connect 25 0 4 0;
+#X connect 26 0 4 0;
+#X connect 30 0 4 0;
+#X connect 32 0 30 0;
