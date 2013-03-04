@@ -37,6 +37,7 @@ for each point :
 < 2 bytes (MSB first) : y >
 
 TODO:
+- add support to all settings (mainly angle correction and end line correction)
 - add perspective correction on server side,
 - add geometrie correction on server side
 - add ILDA and GAL files reading
