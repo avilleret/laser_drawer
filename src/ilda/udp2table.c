@@ -3,31 +3,14 @@
 
 #include "m_pd.h"
 #include "string.h"
+#include "ilda.h"
+
 #define PT_COORD_MAX 32767.5
 #define CH_X 0
 #define CH_Y 1
 #define CH_R 2
 #define CH_G 3
 #define CH_B 4
-
-
-typedef struct ilda_settings
-{
-    float scale_x, scale_y, offset_x, offset_y;
-    int intensity;
-    int mode; //~ 0:analog color, 1:digital color, 2:analog green, 3:digital green
-    int invert_x, invert_y, blanking_off, invert_blancking;
-    float angle_correction, end_line_correction, scan_freq;
-} t_ilda_settings;
-
-typedef struct ilda_channel
-{
-    t_garray *array;
-    t_symbol *arrayname;
-    t_symbol *channelname;
-    t_word  *vec;
-    int vecsize;
-} t_ilda_channel;
 
 typedef struct udp2table
 {
@@ -225,7 +208,7 @@ void udp2table_list(t_udp2table *x, t_symbol* s, unsigned int ac, t_atom* av){
     s=NULL;
 }
 
-void udp2table_settab ( t_udp2table *x, t_symbol* s, unsigned int ac, t_atom* av )
+static void udp2table_settab ( t_udp2table *x, t_symbol* s, unsigned int ac, t_atom* av )
 {
     if (ac%2 != 0 ) {
 		error("wong arg number, usage : settab <x|y|r|g|b> <table name>");
