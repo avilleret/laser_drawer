@@ -1,4 +1,4 @@
-#N canvas 1 90 1125 617 12;
+#N canvas 1 95 1125 617 12;
 #X msg 83 78 rewind;
 #X obj 195 465 textfile;
 #X msg 60 55 bang;

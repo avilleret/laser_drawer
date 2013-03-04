@@ -1,4 +1,4 @@
-/* binfile.c An external for Pure Data that reads and writes binary files
+/* readilda.c An external for Pure Data that reads and writes binary files
 *	Copyright (C) 2007  Martin Peach
 *
 *	This program is free software; you can redistribute it and/or modify
@@ -15,22 +15,24 @@
 *	along with this program; if not, write to the Free Software
 *	Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 *
-*	The latest version of this file can be found at:
-*	http://pure-data.cvs.sourceforge.net/pure-data/externals/mrpeach/binfile/
-*
-*	martin.peach@sympatico.ca
+*	based on binfile by martin.peach@sympatico.ca
 */
 
+/*
+ * readilda : read ilda files, part of ilda librery
+ * Antoine Villeret - EnsadLab 2013, antoine.villeret[AT]gmail.com
+ * 
+ */ 
 #include "m_pd.h"
 #include <stdio.h>
 #include <string.h>
 
-static t_class *binfile_class;
+static t_class *readilda_class;
 
 #define ALLOC_BLOCK_SIZE 65536 /* number of bytes to add when resizing buffer */
 #define PATH_BUF_SIZE 1024 /* maximumn length of a file path */
 
-typedef struct t_binfile
+typedef struct t_readilda
 {
     t_object    x_obj;
     t_outlet    *x_bin_outlet;
@@ -44,56 +46,56 @@ typedef struct t_binfile
     size_t      x_length; /* current length of valid data in buf */
     size_t      x_rd_offset; /* current read offset into the buffer */
     size_t      x_wr_offset; /* current write offset into the buffer */
-} t_binfile;
+} t_readilda;
 
-static void binfile_rewind (t_binfile *x);
-static void binfile_free(t_binfile *x);
-static FILE *binfile_open_path(t_binfile *x, char *path, char *mode);
-static void binfile_read(t_binfile *x, t_symbol *path);
-static void binfile_write(t_binfile *x, t_symbol *path);
-static void binfile_bang(t_binfile *x);
-static void binfile_float(t_binfile *x, t_float val);
-static void binfile_list(t_binfile *x, t_symbol *s, int argc, t_atom *argv);
-static void binfile_add(t_binfile *x, t_symbol *s, int argc, t_atom *argv);
-static void binfile_clear(t_binfile *x);
-static void binfile_info(t_binfile *x);
-static void binfile_set(t_binfile *x, t_symbol *s, int argc, t_atom *argv);
-static void binfile_set_read_index(t_binfile *x, t_float offset);
-static void binfile_set_write_index(t_binfile *x, t_float offset);
-static void *binfile_new(t_symbol *s, int argc, t_atom *argv);
-void binfile_setup(void);
+static void readilda_rewind (t_readilda *x);
+static void readilda_free(t_readilda *x);
+static FILE *readilda_open_path(t_readilda *x, char *path, char *mode);
+static void readilda_read(t_readilda *x, t_symbol *path);
+static void readilda_write(t_readilda *x, t_symbol *path);
+static void readilda_bang(t_readilda *x);
+static void readilda_float(t_readilda *x, t_float val);
+static void readilda_list(t_readilda *x, t_symbol *s, int argc, t_atom *argv);
+static void readilda_add(t_readilda *x, t_symbol *s, int argc, t_atom *argv);
+static void readilda_clear(t_readilda *x);
+static void readilda_info(t_readilda *x);
+static void readilda_set(t_readilda *x, t_symbol *s, int argc, t_atom *argv);
+static void readilda_set_read_index(t_readilda *x, t_float offset);
+static void readilda_set_write_index(t_readilda *x, t_float offset);
+static void *readilda_new(t_symbol *s, int argc, t_atom *argv);
+void readilda_setup(void);
 
-void binfile_setup(void)
+void readilda_setup(void)
 {
-    binfile_class = class_new (gensym("binfile"),
-        (t_newmethod) binfile_new,
-        (t_method)binfile_free, sizeof(t_binfile),
+    readilda_class = class_new (gensym("readilda"),
+        (t_newmethod) readilda_new,
+        (t_method)readilda_free, sizeof(t_readilda),
         CLASS_DEFAULT,
         A_GIMME, 0);
 
-    class_addbang(binfile_class, binfile_bang);
-    class_addfloat(binfile_class, binfile_float);
-    class_addlist(binfile_class, binfile_list);
-    class_addmethod(binfile_class, (t_method)binfile_read, gensym("read"), A_DEFSYMBOL, 0);
-    class_addmethod(binfile_class, (t_method)binfile_write, gensym("write"), A_DEFSYMBOL, 0);
-    class_addmethod(binfile_class, (t_method)binfile_add, gensym("add"), A_GIMME, 0);
-    class_addmethod(binfile_class, (t_method)binfile_set, gensym("set"), A_GIMME, 0);
-    class_addmethod(binfile_class, (t_method)binfile_set_read_index, gensym("readat"), A_DEFFLOAT, 0);
-    class_addmethod(binfile_class, (t_method)binfile_set_write_index, gensym("writeat"), A_DEFFLOAT, 0);
-    class_addmethod(binfile_class, (t_method)binfile_clear, gensym("clear"), 0);
-    class_addmethod(binfile_class, (t_method)binfile_rewind, gensym("rewind"), 0);
-    class_addmethod(binfile_class, (t_method)binfile_info, gensym("info"), 0);
+    class_addbang(readilda_class, readilda_bang);
+    class_addfloat(readilda_class, readilda_float);
+    class_addlist(readilda_class, readilda_list);
+    class_addmethod(readilda_class, (t_method)readilda_read, gensym("read"), A_DEFSYMBOL, 0);
+    class_addmethod(readilda_class, (t_method)readilda_write, gensym("write"), A_DEFSYMBOL, 0);
+    class_addmethod(readilda_class, (t_method)readilda_add, gensym("add"), A_GIMME, 0);
+    class_addmethod(readilda_class, (t_method)readilda_set, gensym("set"), A_GIMME, 0);
+    class_addmethod(readilda_class, (t_method)readilda_set_read_index, gensym("readat"), A_DEFFLOAT, 0);
+    class_addmethod(readilda_class, (t_method)readilda_set_write_index, gensym("writeat"), A_DEFFLOAT, 0);
+    class_addmethod(readilda_class, (t_method)readilda_clear, gensym("clear"), 0);
+    class_addmethod(readilda_class, (t_method)readilda_rewind, gensym("rewind"), 0);
+    class_addmethod(readilda_class, (t_method)readilda_info, gensym("info"), 0);
 }
 
-static void *binfile_new(t_symbol *s, int argc, t_atom *argv)
+static void *readilda_new(t_symbol *s, int argc, t_atom *argv)
 {
-    t_binfile  *x = (t_binfile *)pd_new(binfile_class);
+    t_readilda  *x = (t_readilda *)pd_new(readilda_class);
     t_symbol    *pathSymbol;
     int         i;
 
     if (x == NULL)
     {
-        error("binfile: Could not create...");
+        error("readilda: Could not create...");
         return x;
     }
     x->x_fP = NULL;
@@ -108,7 +110,7 @@ static void *binfile_new(t_symbol *s, int argc, t_atom *argv)
         {
             pathSymbol = atom_getsymbol(&argv[i]);
             if (pathSymbol != NULL)
-                binfile_read(x, pathSymbol);
+                readilda_read(x, pathSymbol);
         }
     }
     /* find the first float in the arg list and interpret it as the size of the buffer */
@@ -121,14 +123,14 @@ static void *binfile_new(t_symbol *s, int argc, t_atom *argv)
         }
     }
     if ((x->x_buf = getbytes(x->x_buf_length)) == NULL)
-        error ("binfile: Unable to allocate %lu bytes for buffer", x->x_buf_length);
+        error ("readilda: Unable to allocate %lu bytes for buffer", x->x_buf_length);
     x->x_bin_outlet = outlet_new(&x->x_obj, gensym("float"));
     x->x_info_outlet = outlet_new(&x->x_obj, gensym("list"));
     x->x_bang_outlet = outlet_new(&x->x_obj, gensym("bang")); /* bang at end of file */
     return (void *)x;
 }
 
-static void binfile_free(t_binfile *x)
+static void readilda_free(t_readilda *x)
 {
     if (x->x_buf != NULL)
         freebytes(x->x_buf, x->x_buf_length);
@@ -136,11 +138,11 @@ static void binfile_free(t_binfile *x)
     x->x_buf_length = 0L;
 }
 
-static FILE *binfile_open_path(t_binfile *x, char *path, char *mode)
+static FILE *readilda_open_path(t_readilda *x, char *path, char *mode)
 /* path is a string. Up to PATH_BUF_SIZE-1 characters will be copied into x->x_fPath. */
 /* mode should be "rb" or "wb" */
 /* x->x_fPath will be used as a file name to open. */
-/* binfile_open_path attempts to open the file for binary mode reading. */
+/* readilda_open_path attempts to open the file for binary mode reading. */
 /* Returns FILE pointer if successful, else 0. */
 {
     FILE    *fP = NULL;
@@ -173,29 +175,29 @@ static FILE *binfile_open_path(t_binfile *x, char *path, char *mode)
     return fP;
 }
 
-static void binfile_write(t_binfile *x, t_symbol *path)
+static void readilda_write(t_readilda *x, t_symbol *path)
 /* open the file for writing and write the entire buffer to it, then close it */
 {
     size_t bytes_written = 0L;
 
-    if (0==(x->x_fP = binfile_open_path(x, path->s_name, "wb")))
-        error("binfile: Unable to open %s for writing", path->s_name);
+    if (0==(x->x_fP = readilda_open_path(x, path->s_name, "wb")))
+        error("readilda: Unable to open %s for writing", path->s_name);
     bytes_written = fwrite(x->x_buf, 1L, x->x_length, x->x_fP);
-    if (bytes_written != x->x_length) post("binfile: %ld bytes written != %ld", bytes_written, x->x_length);
-    else post("binfile: wrote %ld bytes to %s", bytes_written, path->s_name);
+    if (bytes_written != x->x_length) post("readilda: %ld bytes written != %ld", bytes_written, x->x_length);
+    else post("readilda: wrote %ld bytes to %s", bytes_written, path->s_name);
     fclose(x->x_fP);
     x->x_fP = NULL;
 }
 
-static void binfile_read(t_binfile *x, t_symbol *path)
+static void readilda_read(t_readilda *x, t_symbol *path)
 /* open the file for reading and load it into the buffer, then close it */
 {
     size_t file_length = 0L;
     size_t bytes_read = 0L;
 
-    if (0==(x->x_fP = binfile_open_path(x, path->s_name, "rb")))
+    if (0==(x->x_fP = readilda_open_path(x, path->s_name, "rb")))
     {
-        error("binfile: Unable to open %s for reading", path->s_name);
+        error("readilda: Unable to open %s for reading", path->s_name);
         return;
     }
     /* get length of file */
@@ -208,7 +210,7 @@ static void binfile_read(t_binfile *x, t_symbol *path)
     if (NULL == x->x_buf)
     {
         x->x_buf_length = 0L;
-        error ("binfile: unable to allocate %ld bytes for %s", file_length, path->s_name);
+        error ("readilda: unable to allocate %ld bytes for %s", file_length, path->s_name);
         return;
     }
     x->x_rd_offset = 0L;
@@ -221,11 +223,23 @@ static void binfile_read(t_binfile *x, t_symbol *path)
     x->x_rd_offset = 0L; /* read from start of file */
     fclose (x->x_fP);
     x->x_fP = NULL;
-    if (bytes_read != file_length) post("binfile length %ld not equal to bytes read (%ld)", file_length, bytes_read);
+    if (bytes_read != file_length) post("readilda length %ld not equal to bytes read (%ld)", file_length, bytes_read);
     else post("binfle: read %ld bytes from %s", bytes_read, path->s_name);
+    
+    int i;
+    for ( i=0 ; i<x->x_buf_length-4 ; i++ ){
+        if ( x->x_buf[i] == 'I' && x->x_buf[i+1] == 'L' && x->x_buf[i+2] == 'D' && x->x_buf[i+3] == 'A' )
+        {
+            unsigned long int format = x->x_buf[i+4] << 24 + x->x_buf[i+5] << 16 + x->x_buf[i+6] << 8 + x->x_buf[i+7];
+            post("found a frame at %d, format : %ld", i, format);
+            i+=7;
+        } else {
+            i+=4;
+        }
+    }
 }
 
-static void binfile_bang(t_binfile *x)
+static void readilda_bang(t_readilda *x)
 /* get the next byte in the file and send it out x_bin_list_outlet */
 {
     unsigned char c;
@@ -244,7 +258,7 @@ static void binfile_bang(t_binfile *x)
 * the number of atoms and a pointer to the list of atoms:
 */
 
-static void binfile_add(t_binfile *x, t_symbol *s, int argc, t_atom *argv)
+static void readilda_add(t_readilda *x, t_symbol *s, int argc, t_atom *argv)
 /* add a list of bytes to the buffer */
 {
     int         i, j;
@@ -258,12 +272,12 @@ static void binfile_add(t_binfile *x, t_symbol *s, int argc, t_atom *argv)
             f = atom_getfloat(&argv[i]);
             if (j < -128 || j > 255)
             {
-                error("binfile: input (%d) out of range [0..255]", j);
+                error("readilda: input (%d) out of range [0..255]", j);
                 return;
             }
             if (j != f)
             {
-                error("binfile: input (%f) not an integer", f);
+                error("readilda: input (%f) not an integer", f);
                 return;
             }
             if (x->x_buf_length <= x->x_wr_offset)
@@ -271,7 +285,7 @@ static void binfile_add(t_binfile *x, t_symbol *s, int argc, t_atom *argv)
                 x->x_buf = resizebytes(x->x_buf, x->x_buf_length, x->x_buf_length+ALLOC_BLOCK_SIZE);
                 if (x->x_buf == NULL)
                 {
-                    error("binfile: unable to resize buffer");
+                    error("readilda: unable to resize buffer");
                     return;
                 }
                 x->x_buf_length += ALLOC_BLOCK_SIZE;
@@ -281,25 +295,25 @@ static void binfile_add(t_binfile *x, t_symbol *s, int argc, t_atom *argv)
         }
         else
         {
-            error("binfile: input %d not a float", i);
+            error("readilda: input %d not a float", i);
             return;
         }
     }
 }
 
-static void binfile_list(t_binfile *x, t_symbol *s, int argc, t_atom *argv)
+static void readilda_list(t_readilda *x, t_symbol *s, int argc, t_atom *argv)
 {
-    binfile_add(x, s, argc, argv);
+    readilda_add(x, s, argc, argv);
 }
 
-static void binfile_set(t_binfile *x, t_symbol *s, int argc, t_atom *argv)
+static void readilda_set(t_readilda *x, t_symbol *s, int argc, t_atom *argv)
 /* clear then add a list of bytes to the buffer */
 {
-    binfile_clear(x);
-    binfile_add(x, s, argc, argv);
+    readilda_clear(x);
+    readilda_add(x, s, argc, argv);
 }
 
-static void binfile_set_read_index(t_binfile *x, t_float offset)
+static void readilda_set_read_index(t_readilda *x, t_float offset)
 /* set the read offset, always < length */
 {
     size_t intoffset = offset;
@@ -309,7 +323,7 @@ static void binfile_set_read_index(t_binfile *x, t_float offset)
     else x->x_rd_offset = 0L;
 }
 
-static void binfile_set_write_index(t_binfile *x, t_float offset)
+static void readilda_set_write_index(t_readilda *x, t_float offset)
 /* set the write offset, always <= length */
 {
     size_t intoffset = offset;
@@ -318,28 +332,28 @@ static void binfile_set_write_index(t_binfile *x, t_float offset)
     else  x->x_wr_offset = x->x_length;
 }
 
-static void binfile_clear(t_binfile *x)
+static void readilda_clear(t_readilda *x)
 {
     x->x_wr_offset = 0L;
     x->x_rd_offset = 0L;
     x->x_length = 0L;
 }
 
-static void binfile_float(t_binfile *x, t_float val)
+static void readilda_float(t_readilda *x, t_float val)
 /* add a single byte to the file */
 {
     t_atom a;
 
     SETFLOAT(&a, val);
-    binfile_add(x, gensym("float"), 1, &a);
+    readilda_add(x, gensym("float"), 1, &a);
 }
 
-static void binfile_rewind (t_binfile *x)
+static void readilda_rewind (t_readilda *x)
 {
     x->x_rd_offset = 0L;
 }
 
-static void binfile_info(t_binfile *x)
+static void readilda_info(t_readilda *x)
 {
     t_atom *output_atom = getbytes(sizeof(t_atom));
     SETFLOAT(output_atom, x->x_buf_length);
@@ -352,4 +366,4 @@ static void binfile_info(t_binfile *x)
     outlet_anything( x->x_info_outlet, gensym("writeoffset"), 1, output_atom);
     freebytes(output_atom,sizeof(t_atom));
 }
-/* fin binfile.c */
+/* fin readilda.c */
