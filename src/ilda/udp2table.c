@@ -5,13 +5,6 @@
 #include "string.h"
 #include "ilda.h"
 
-#define PT_COORD_MAX 32767.5
-#define CH_X 0
-#define CH_Y 1
-#define CH_R 2
-#define CH_G 3
-#define CH_B 4
-
 typedef struct udp2table
 {
   t_object x_ob;
@@ -24,13 +17,13 @@ t_class *udp2table_class;
 
 void decode_settings(t_udp2table *x, unsigned int ac, t_atom* av){
     int i = 18;
-    x->settings.offset_x = (float) (((char) av[i].a_w.w_float << 8) + (char) av[i+1].a_w.w_float) / PT_COORD_MAX - 1.;
+    x->settings.offset_x = (float) ((((char) av[i].a_w.w_float & 0xFF) << 8) |((char) av[i+1].a_w.w_float & 0xFF)) / PT_COORD_MAX - 1.;
     i+=2;
-    x->settings.offset_y = (float) (((char) av[i].a_w.w_float << 8) + (char) av[i+1].a_w.w_float) / PT_COORD_MAX - 1.;
+    x->settings.offset_y = (float) ((((char) av[i].a_w.w_float & 0xFF) << 8) |((char) av[i+1].a_w.w_float & 0xFF)) / PT_COORD_MAX - 1.;
     i+=2;
-    x->settings.scale_x =  (float) (((char) av[i].a_w.w_float << 8) + (char) av[i+1].a_w.w_float) / PT_COORD_MAX - 1.;
+    x->settings.scale_x =  (float) ((((char) av[i].a_w.w_float & 0xFF) << 8) |((char) av[i+1].a_w.w_float & 0xFF)) / PT_COORD_MAX - 1.;
     i+=2;
-    x->settings.scale_y = (float) (((char) av[i].a_w.w_float << 8) + (char) av[i+1].a_w.w_float) / PT_COORD_MAX - 1.;
+    x->settings.scale_y = (float) ((((char) av[i].a_w.w_float & 0xFF) << 8) |((char) av[i+1].a_w.w_float & 0xFF)) / PT_COORD_MAX - 1.;
     i+=2;
     x->settings.invert_x = (char) av[i++].a_w.w_float > 0?1:0;
     x->settings.invert_y = (char) av[i++].a_w.w_float > 0?1:0;
@@ -38,11 +31,11 @@ void decode_settings(t_udp2table *x, unsigned int ac, t_atom* av){
     x->settings.invert_blancking = (char) av[i++].a_w.w_float > 0?1:0;
     x->settings.intensity = av[i++].a_w.w_float/255.;
     x->settings.mode = (char) av[i++].a_w.w_float;
-    x->settings.angle_correction = (float) (((char) av[i].a_w.w_float << 8 ) + (char) av[i+1].a_w.w_float);
+    x->settings.angle_correction = (float) ((((char) av[i].a_w.w_float & 0xFF) << 8 ) | ((char) av[i+1].a_w.w_float & 0xFF));
     i+=2;
-    x->settings.end_line_correction = (float) (((char) av[i].a_w.w_float << 8 ) + (char) av[i+1].a_w.w_float);
-    i+=2;
-    x->settings.scan_freq = (float) (((char) av[i].a_w.w_float << 8 ) + (char) av[i+1].a_w.w_float);
+    x->settings.end_line_correction = (float) ((((char) av[i].a_w.w_float & 0xFF) << 8 ) | ((char) av[i+1].a_w.w_float & 0xFF));
+    i+=2   ;
+    x->settings.scan_freq = (float) ((((char) av[i].a_w.w_float & 0xFF) << 8 ) | ((char) av[i+1].a_w.w_float & 0xFF));
     
     t_atom output_settings[13];
     for ( i=0;i<13;i++ ){
@@ -74,13 +67,13 @@ void decode_data(t_udp2table *x, unsigned int ac, t_atom* av){
     }
     
     int i=18,line_strip,j; // first number of points
-    line_strip=((char) av[i].a_w.w_float << 8 ) + (char) av[i+1].a_w.w_float; //~ number of line strips
+    line_strip=(((char) av[i].a_w.w_float & 0xFF) << 8 ) | ((char) av[i+1].a_w.w_float & 0xFF); //~ number of line strips
     
     int pt_count = 0, tmp;
     i=23; //~ first line strip
     
     for ( j=0 ; j < line_strip && i < (ac-2) ; j++ ){
-        tmp=(int) ((char) av[i].a_w.w_float << 8 ) + (char) av[i+1].a_w.w_float;
+        tmp=(int) (((char) av[i].a_w.w_float & 0xFF) << 8 ) | ((char) av[i+1].a_w.w_float & 0xFF);
         //~ printf("strip %d/%d with %d point\n", j, line_strip, tmp);
         pt_count+=tmp;
         i+=tmp*4+5;
@@ -120,47 +113,47 @@ void decode_data(t_udp2table *x, unsigned int ac, t_atom* av){
         }
         i+=3;
         
-        pt_count = (int) ((char) av[i].a_w.w_float << 8 ) + (char) av[i+1].a_w.w_float;
+        pt_count = (int) (((char) av[i].a_w.w_float & 0xFF) << 8 ) | ((char) av[i+1].a_w.w_float & 0xFF);
         //~ printf("strip with %d points\n",pt_count); 
         i+=2;
         
         int k;
         for ( k = 0 ; k < pt_count && j < size && i < av-4 ; k++){  
             //~ i:index in the input frame, j:index in the table, k:index in the point table (subtable of input frame)
-            float tmpx = (float) (((char) av[i].a_w.w_float << 8 ) + (char) av[i+1].a_w.w_float)/PT_COORD_MAX - 1.;
+            float tmpx = (float) ((((char) av[i].a_w.w_float & 0xFF) << 8 ) | ((char) av[i+1].a_w.w_float & 0xFF))/PT_COORD_MAX - 1.;
             i+=2;
-            float tmpy = (float) (((char) av[i].a_w.w_float << 8 ) + (char) av[i+1].a_w.w_float)/PT_COORD_MAX - 1.;
+            float tmpy = (float) ((((char) av[i].a_w.w_float & 0xFF) << 8 ) | ((char) av[i+1].a_w.w_float & 0xFF))/PT_COORD_MAX - 1.;
             i+=2;
             
             if ( x->settings.invert_x ){
-                x->channel[CH_X].vec[j].w_float= (1-tmpx) * x->settings.scale_y + x->settings.offset_x;
+                x->channel[ILDA_CH_X].vec[j].w_float= (1-tmpx) * x->settings.scale_y + x->settings.offset_x;
             } else {
-                x->channel[CH_X].vec[j].w_float= tmpx * x->settings.scale_y + x->settings.offset_x;
+                x->channel[ILDA_CH_X].vec[j].w_float= tmpx * x->settings.scale_y + x->settings.offset_x;
             }
             
             if ( x->settings.invert_y ){
-                x->channel[CH_Y].vec[j].w_float= (1-tmpy) * x->settings.scale_x + x->settings.offset_y;
+                x->channel[ILDA_CH_Y].vec[j].w_float= (1-tmpy) * x->settings.scale_x + x->settings.offset_y;
             } else {
-                x->channel[CH_Y].vec[j].w_float= tmpy * x->settings.scale_x + x->settings.offset_y;
+                x->channel[ILDA_CH_Y].vec[j].w_float= tmpy * x->settings.scale_x + x->settings.offset_y;
             }
             
             if ( x->settings.blanking_off ) {
-                x->channel[CH_R].vec[j].w_float=1.;
-                x->channel[CH_G].vec[j].w_float=1.;
-                x->channel[CH_B].vec[j].w_float=1.;
+                x->channel[ILDA_CH_R].vec[j].w_float=1.;
+                x->channel[ILDA_CH_G].vec[j].w_float=1.;
+                x->channel[ILDA_CH_B].vec[j].w_float=1.;
             } else {
-                x->channel[CH_R].vec[j].w_float=r;
-                x->channel[CH_G].vec[j].w_float=g;
-                x->channel[CH_B].vec[j].w_float=b;
+                x->channel[ILDA_CH_R].vec[j].w_float=r;
+                x->channel[ILDA_CH_G].vec[j].w_float=g;
+                x->channel[ILDA_CH_B].vec[j].w_float=b;
             }
             
             if ( x->settings.invert_blancking ){
-                x->channel[CH_R].vec[j].w_float=1-x->channel[CH_R].vec[j].w_float;
-                x->channel[CH_G].vec[j].w_float=1-x->channel[CH_G].vec[j].w_float;
-                x->channel[CH_B].vec[j].w_float=1-x->channel[CH_B].vec[j].w_float;
+                x->channel[ILDA_CH_R].vec[j].w_float=1-x->channel[ILDA_CH_R].vec[j].w_float;
+                x->channel[ILDA_CH_G].vec[j].w_float=1-x->channel[ILDA_CH_G].vec[j].w_float;
+                x->channel[ILDA_CH_B].vec[j].w_float=1-x->channel[ILDA_CH_B].vec[j].w_float;
             }
             
-            //~ printf("%d\t%.5f\t%.5f\t%.5f\n", j, x->channel[CH_X].vec[j].w_float, x->channel[CH_Y].vec[j].w_float, x->channel[CH_R].vec[j].w_float);
+            //~ printf("%d\t%.5f\t%.5f\t%.5f\n", j, x->channel[ILDA_CH_X].vec[j].w_float, x->channel[ILDA_CH_Y].vec[j].w_float, x->channel[ILDA_CH_R].vec[j].w_float);
             j++;
         }
     }
@@ -192,7 +185,7 @@ void udp2table_list(t_udp2table *x, t_symbol* s, unsigned int ac, t_atom* av){
         }
     }
     
-    long unsigned int size = ((char) av[13].a_w.w_float << 24) + ((char) av[14].a_w.w_float << 16) + ((char) av[15].a_w.w_float << 8) + (char) av[16].a_w.w_float;
+    long unsigned int size = (( (char) av[13].a_w.w_float & 0xFF) << 24) |(( (char) av[14].a_w.w_float & 0xFF) << 16) |(( (char) av[15].a_w.w_float & 0xFF) << 8) |( (char) av[16].a_w.w_float & 0xFF);
     
     if ( size != (ac-17) ) {
         error("wrong frame header (bad size)");

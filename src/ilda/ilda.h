@@ -1,3 +1,12 @@
+#include <limits.h>
+#define PT_COORD_MAX 32767.5
+#define ILDA_CH_X 0
+#define ILDA_CH_Y 1
+//~ #define ILDA_CH_Z 1
+#define ILDA_CH_R 2
+#define ILDA_CH_G 3
+#define ILDA_CH_B 4
+
 typedef struct ilda_settings
 {
     float scale_x, scale_y, offset_x, offset_y;

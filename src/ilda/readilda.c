@@ -34,13 +34,6 @@ static t_class *readilda_class;
 #define ALLOC_BLOCK_SIZE 65536 /* number of bytes to add when resizing buffer */
 #define PATH_BUF_SIZE 1024 /* maximumn length of a file path */
 
-#define PT_COORD_MAX 32767.5
-#define CH_X 0
-#define CH_Y 1
-#define CH_R 2
-#define CH_G 3
-#define CH_B 4
-
 typedef struct t_readilda
 {
     t_object    x_obj;
@@ -50,7 +43,7 @@ typedef struct t_readilda
     FILE        *x_fP;
     t_symbol    *x_our_directory;
     char        x_fPath[PATH_BUF_SIZE];
-    char        *x_buf; /* read/write buffer in memory for file contents */
+    unsigned char        *x_buf; /* read/write buffer in memory for file contents */
     size_t      x_buf_length; /* current length of buf */
     size_t      x_length; /* current length of valid data in buf */
     size_t      x_rd_offset; /* current read offset into the buffer */
@@ -58,7 +51,8 @@ typedef struct t_readilda
 
     t_ilda_frame frame[128]; /* actually we can't store more than 128 frame, this is arbitraty */
     unsigned int frame_count;
-    t_ilda_channel channel[5];
+    t_ilda_channel channel[6];
+    t_ilda_settings settings;
 
 } t_readilda;
 
@@ -134,6 +128,8 @@ static void *readilda_new(t_symbol *s, int argc, t_atom *argv)
     if ((x->x_buf = getbytes(x->x_buf_length)) == NULL)
         error ("readilda: Unable to allocate %lu bytes for buffer", x->x_buf_length);
     x->x_info_outlet = outlet_new(&x->x_obj, gensym("info"));
+    
+    x->settings.invert_blancking=1;
     return (void *)x;
 }
 
@@ -231,14 +227,15 @@ static void readilda_read(t_readilda *x, t_symbol *path)
     fclose (x->x_fP);
     x->x_fP = NULL;
     if (bytes_read != file_length) post("readilda length %ld not equal to bytes read (%ld)", file_length, bytes_read);
-    else post("binfle: read %ld bytes from %s", bytes_read, path->s_name);
+    else post("readilda: read %ld bytes from %s", bytes_read, path->s_name);
     
     unsigned int i,j=0;
     x->frame_count=0;
+    int count_0=0, count_1=0, count_2=0, count_3=0;
     for ( i=0 ; i<x->x_buf_length-4 ; ){
         if ( x->x_buf[i] == 'I' && x->x_buf[i+1] == 'L' && x->x_buf[i+2] == 'D' && x->x_buf[i+3] == 'A' )
         {
-            unsigned long int format = (x->x_buf[i+4] << 24) + (x->x_buf[i+5] << 16) + (x->x_buf[i+6] << 8) + x->x_buf[i+7];
+            unsigned int format = (x->x_buf[i+4] << 24) + (x->x_buf[i+5] << 16) + (x->x_buf[i+6] << 8) + x->x_buf[i+7];
             x->frame[j].format=format;
             
             if ( format < 2 ){
@@ -250,28 +247,36 @@ static void readilda_read(t_readilda *x, t_symbol *path)
                 char compagny_name[9]={x->x_buf[k],x->x_buf[k+1],x->x_buf[k+2],x->x_buf[k+3],x->x_buf[k+4],x->x_buf[k+5],x->x_buf[k+6],x->x_buf[k+7],'\0'};
                 x->frame[j].compagny_name=gensym(compagny_name);
                 
-                x->frame[j].point_number=(float) (x->x_buf[i+24] << 8) + x->x_buf[i+25];
-                x->frame[j].frame_number=(float) (x->x_buf[i+26] << 8) + x->x_buf[i+27];
-                x->frame[j].total_frame=(float) (x->x_buf[i+28] << 8) + x->x_buf[i+29];
-                x->frame[j].scanner=(float) x->x_buf[i+29];
-                
+                x->frame[j].point_number=(float) (((x->x_buf[i+24] & 0xFF) << 8) | (x->x_buf[i+25] & 0xFF));
+                x->frame[j].frame_number=(float) (((x->x_buf[i+26] & 0xFF) << 8) | (x->x_buf[i+27] & 0xFF));
+                x->frame[j].total_frame=(float) (((x->x_buf[i+28] & 0xFF) << 8) | (x->x_buf[i+29] & 0xFF));
+                x->frame[j].scanner=(float) (x->x_buf[i+29] & 0xFF);
                 x->frame[j].start_id=i;
+                
                 i+=32;
                 j++;
                 x->frame_count=j;
+                if ( format == 0 ) count_0++;
+                else count_1++;
             } else if ( format == 2 ){
                 //~ this is a Color Lookup Table Frame
+                count_2++;
             } else if ( format == 3 ){
                 //~ this is a True Color Frame
+                count_3++;
             }
         } else {
             i++;
         }
            
     }
-    for ( i=0;i<x->frame_count;i++){
-
-    }
+    
+    t_atom frame_count[4];
+    SETFLOAT(&frame_count[0],count_0);
+    SETFLOAT(&frame_count[1],count_1);
+    SETFLOAT(&frame_count[2],count_2);
+    SETFLOAT(&frame_count[3],count_3);
+    outlet_anything(x->x_info_outlet, gensym("file_info"), 4, frame_count);
 }
 
 static void readilda_bang(t_readilda *x)
@@ -423,6 +428,7 @@ static void readilda_settab ( t_readilda *x, t_symbol* s, unsigned int ac, t_ato
 static void decode_format_0(t_readilda* x, unsigned int index){
    
    int size=x->frame[index].point_number;
+   printf("table size : %d\n", size);
    
    if ( size == 0 ) return; 
     
@@ -441,26 +447,57 @@ static void decode_format_0(t_readilda* x, unsigned int index){
         }
     }
     
-    t_atom frame_info[7];
-    SETSYMBOL(&frame_info[0], x->frame[index].frame_name);
-    SETSYMBOL(&frame_info[1], x->frame[index].compagny_name);
-    SETFLOAT(&frame_info[2], x->frame[index].format);
-    SETFLOAT(&frame_info[3], x->frame[index].point_number);
-    SETFLOAT(&frame_info[4], x->frame[index].frame_number);
-    SETFLOAT(&frame_info[5], x->frame[index].total_frame);
-    SETFLOAT(&frame_info[6], x->frame[index].scanner);
-    outlet_anything(x->x_info_outlet, gensym("frame_info"), 7, frame_info);
+    unsigned int offset = x->frame[index].start_id+32; //~ ILDA header is 32 bytes for format 0
+    int j=0;
+    i=offset;
     
-    unsigned int offset = x->frame[index].start_id;
-    for ( i=0 ; i<x->frame[index].point_number ; i++ )
+    for ( j=0 ; j<x->frame[index].point_number ; j++, i+=8) //~ each point is 8 bytes in format 0
     {
-        x->channel[CH_X].vec[i].w_float= (x->x_buf[offset+i*2] << 8) + x->x_buf[offset+i*2+1];
-        x->channel[CH_Y].vec[i].w_float= (x->x_buf[offset+i*2+2] << 8) + x->x_buf[offset+i*2+3];
+        //~ bytes 0 and 1 : X coordinate
+        x->channel[ILDA_CH_X].vec[j].w_float= (float) ( (short)((( x->x_buf[i] & 0xFF) << 8) | (x->x_buf[i+1] & 0xFF)) / PT_COORD_MAX );
+        //~ bytes 2 and 3 : Y coordinate
+        x->channel[ILDA_CH_Y].vec[j].w_float= (float) ( (short)((( x->x_buf[i+2] & 0xFF) << 8) | (x->x_buf[i+3] & 0xFF)) / PT_COORD_MAX );
+        //~ bytes 4 and 5 : Z coordinate (ignored for now...)
+        //~ x->channel[ILDA_CH_Z].vec[i].w_float= (float) ( (short)((( x->x_buf[i+4] & 0xFF) << 8) | (x->x_buf[i+5] & 0xFF)) / PT_COORD_MAX );
         
-        x->channel[CH_R].vec[i].w_float= x->x_buf[offset+i*2+7] && 0x40;
-        x->channel[CH_G].vec[i].w_float= x->x_buf[offset+i*2+7] && 0x40;
-        x->channel[CH_B].vec[i].w_float= x->x_buf[offset+i*2+7] && 0x40;
-    }
+        //~ byte 6 : Color Lookup Table index
+        //~ byte 7 :    0x80h is the image end bit (when its 1, this is the last point)
+        //~             0x40h is the blanking bit
+        if ( x->settings.invert_blancking ){
+            x->channel[ILDA_CH_R].vec[j].w_float= 1 - ((x->x_buf[i+6] >> 6) & 0x1);
+            x->channel[ILDA_CH_G].vec[j].w_float= 1 - ((x->x_buf[i+6] >> 6) & 0x1);
+            x->channel[ILDA_CH_B].vec[j].w_float= 1 - ((x->x_buf[i+6] >> 6) & 0x1);
+        } else {
+            x->channel[ILDA_CH_R].vec[j].w_float= (x->x_buf[i+6] >> 6) & 0x1;
+            x->channel[ILDA_CH_G].vec[j].w_float= (x->x_buf[i+6] >> 6) & 0x1;
+            x->channel[ILDA_CH_B].vec[j].w_float= (x->x_buf[i+6] >> 6) & 0x1;
+        }
+        
+        //~ printf ("index : %d, X:%02X%02X:%.2f , Y:%02X%02X:%.2f\n", i, x->x_buf[i] & 0xFF,x->x_buf[i+1] & 0xFF,  x->channel[ILDA_CH_X].vec[j].w_float, x->x_buf[i+2] & 0xFF,x->x_buf[i+3] & 0xFF,x->channel[ILDA_CH_Y].vec[j].w_float);
+        //~ printf("raw data : X:%X %X, Y:%X %X, C:%X %X\n",x->x_buf[i] & 0xFF,x->x_buf[i+1] & 0xFF ,x->x_buf[i+2] & 0xFF,x->x_buf[i+3] & 0xFF,x->x_buf[i+6] & 0xFF,x->x_buf[i+7] & 0xFF);
+        //~ printf("raw data : C:%X %X, %X\n",x->x_buf[i+6] & 0xFF,x->x_buf[i+7] & 0xFF, (x->x_buf[i+6] >> 6) & 0xff);
+        
+        //~ break;
+
+        }
+        
+        t_atom frame_info[7];
+        SETSYMBOL(&frame_info[0], x->frame[index].frame_name);
+        SETSYMBOL(&frame_info[1], x->frame[index].compagny_name);
+        SETFLOAT(&frame_info[2], x->frame[index].format);
+        SETFLOAT(&frame_info[3], x->frame[index].point_number);
+        SETFLOAT(&frame_info[4], x->frame[index].frame_number);
+        SETFLOAT(&frame_info[5], x->frame[index].total_frame);
+        //~ SETFLOAT(&frame_info[6], x->frame[index].scanner);
+        outlet_anything(x->x_info_outlet, gensym("frame_info"), 7, frame_info);
+        
+        printf("frame info : \n");
+        printf("frame name : \t\t%s\n", x->frame[index].frame_name->s_name);
+        printf("compagny name : \t%s\n", x->frame[index].compagny_name->s_name);
+        printf("format : \t\t%d\n", x->frame[index].format);
+        printf("point number : \t\t%d\n", x->frame[index].point_number);
+        printf("frame number : \t\t%d\n", x->frame[index].frame_number);
+        printf("total number of frame in this seq %d\n", x->frame[index].total_frame);
 }
 
 static void decode_format_1(t_readilda* x, unsigned int index)
