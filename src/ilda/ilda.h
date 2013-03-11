@@ -1,4 +1,7 @@
 #include <limits.h>
+#include <stdio.h>
+#include <string.h>
+#include "lo/lo.h"
 #ifdef _WIN32
     #include <winsock2.h>
 #else
@@ -23,7 +26,7 @@ typedef int int4byte;
 typedef struct ilda_settings
 {
     float scale[3], offset[3], invert[3]; //~ scale, offset and invert for X,Y and intensity
-    float intensity; //~ global intensity value
+    float intensity[3]; //~ global intensity value
     int mode; //~ 0:analog color, 1:digital color, 2:analog green, 3:digital green
     int blanking_off;
     float angle_correction, end_line_correction, scan_freq;
