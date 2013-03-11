@@ -6,7 +6,7 @@ LIBRARY_NAME = ilda
 # add your .c source files, one object per file, to the SOURCES
 # variable, help files will be included automatically, and for GUI
 # objects, the matching .tcl file too
-SOURCES = decodeildaframe.c ildafile.c makeildaframe.c
+SOURCES = ildareceive.c ildafile.c ildasend.c
 
 # list all pd objects (i.e. myobject.pd) files here, and their helpfiles will
 # be included automatically
@@ -38,7 +38,7 @@ UNITTESTS =
 ALL_CFLAGS = -I"$(PD_INCLUDE)"
 ALL_LDFLAGS =  
 SHARED_LDFLAGS =
-ALL_LIBS = 
+ALL_LIBS = -l lo
 
 
 #------------------------------------------------------------------------------#
