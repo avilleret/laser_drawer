@@ -6,7 +6,7 @@ LIBRARY_NAME = ilda
 # add your .c source files, one object per file, to the SOURCES
 # variable, help files will be included automatically, and for GUI
 # objects, the matching .tcl file too
-SOURCES = udp2table.c ildafile.c
+SOURCES = udp2table.c ildafile.c makeildaframe.c
 
 # list all pd objects (i.e. myobject.pd) files here, and their helpfiles will
 # be included automatically
