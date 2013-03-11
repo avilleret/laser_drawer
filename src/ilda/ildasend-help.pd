@@ -1,0 +1,119 @@
+#N canvas 781 146 885 663 10;
+#X obj -46 10 table ilda_X 1000;
+#X obj -46 30 table ilda_Y 1000;
+#X obj -46 50 table ilda_Z 1000;
+#N canvas 1 173 450 537 make_table 1;
+#X obj 112 -806 tabwrite ilda_X;
+#X obj 161 -714 tabwrite ilda_Y;
+#X obj 170 -938 until;
+#X obj 170 -917 f;
+#X obj 195 -917 + 1;
+#X obj 170 -1018 t b b;
+#X msg 197 -998 0;
+#X obj 170 -1038 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144
+-1 -1;
+#X obj 169 -892 t f f;
+#X obj 134 -582 tabwrite ilda_Z;
+#X obj 168 -1064 loadbang;
+#X obj 133 -833 t f;
+#X obj 134 -644 % 2;
+#X obj 134 -664 / 100;
+#X obj 134 -623 t b;
+#X msg 134 -602 255;
+#X obj 165 -770 * -1;
+#X obj 140 -861 / 999;
+#X msg 170 -998 100;
+#X connect 2 0 3 0;
+#X connect 3 0 4 0;
+#X connect 3 0 8 0;
+#X connect 4 0 3 1;
+#X connect 5 0 18 0;
+#X connect 5 1 6 0;
+#X connect 6 0 3 1;
+#X connect 7 0 5 0;
+#X connect 8 0 13 0;
+#X connect 8 0 16 0;
+#X connect 8 0 17 0;
+#X connect 8 1 0 1;
+#X connect 8 1 1 1;
+#X connect 8 1 9 1;
+#X connect 10 0 7 0;
+#X connect 11 0 0 0;
+#X connect 12 0 14 0;
+#X connect 13 0 12 0;
+#X connect 14 0 15 0;
+#X connect 15 0 9 0;
+#X connect 16 0 1 0;
+#X connect 17 0 11 0;
+#X connect 18 0 2 0;
+#X restore -46 70 pd make_table;
+#X obj 95 114 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 0
+1;
+#X floatatom 63 117 5 0 0 0 - - -;
+#X msg 478 146 dst_point;
+#X obj 482 -67 cnv 15 198 130 empty empty empty 20 12 0 14 -233017
+-66577 0;
+#X obj 500 -36 nbx 5 16 -20000 20000 0 1 empty empty x -10 7 0 12 -203904
+-1 -1 -2 256;
+#X obj 500 -16 nbx 5 16 -20000 20000 0 1 empty empty y -10 7 0 12 -203904
+-1 -1 0 256;
+#X obj 600 -36 nbx 5 16 -2000 20000 0 1 empty empty x -10 7 0 12 -203904
+-1 -1 0 256;
+#X obj 600 -16 nbx 5 16 -20000 20000 0 1 empty empty y -10 7 0 12 -203904
+-1 -1 0 256;
+#X obj 600 14 nbx 5 16 -20000 20000 0 1 empty empty x -10 7 0 12 -203904
+-1 -1 0 256;
+#X obj 600 34 nbx 5 16 -20000 20000 0 1 empty empty y -10 7 0 12 -203904
+-1 -1 1 256;
+#X obj 500 14 nbx 5 16 -20000 20000 0 1 empty empty x -10 7 0 12 -203904
+-1 -1 -2 256;
+#X obj 500 34 nbx 5 16 -20000 20000 0 1 empty empty y -10 7 0 12 -203904
+-1 -1 1 256;
+#X obj 545 241 pack f f f f f f f f;
+#X obj 545 219 f;
+#X obj 555 198 t b f;
+#X obj 573 179 t b f;
+#X obj 588 160 t b f;
+#X obj 603 139 t b f;
+#X obj 618 120 t b f;
+#X obj 635 100 t b f;
+#X obj 650 81 t b f;
+#X obj 507 172 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144
+-1 -1;
+#X msg 234 174 connect 127.0.0.1 3265;
+#X obj 209 206 ildasend;
+#X obj 186 164 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144
+-1 -1;
+#X msg 217 141 settab x ilda_X y ilda_Y r ilda_Z;
+#X obj 214 92 loadbang;
+#X obj 209 227 print ildasend;
+#X connect 8 0 17 0;
+#X connect 9 0 18 0;
+#X connect 10 0 19 0;
+#X connect 11 0 20 0;
+#X connect 12 0 21 0;
+#X connect 13 0 22 0;
+#X connect 14 0 23 0;
+#X connect 15 0 24 0;
+#X connect 17 0 16 0;
+#X connect 18 0 17 0;
+#X connect 18 1 16 1;
+#X connect 19 0 17 0;
+#X connect 19 1 16 2;
+#X connect 20 0 17 0;
+#X connect 20 1 16 3;
+#X connect 21 0 17 0;
+#X connect 21 1 16 4;
+#X connect 22 0 17 0;
+#X connect 22 1 16 5;
+#X connect 23 0 17 0;
+#X connect 23 1 16 6;
+#X connect 24 0 17 0;
+#X connect 24 1 16 7;
+#X connect 25 0 17 0;
+#X connect 26 0 27 0;
+#X connect 27 0 31 0;
+#X connect 28 0 27 0;
+#X connect 29 0 27 0;
+#X connect 30 0 26 0;
+#X connect 30 0 29 0;
