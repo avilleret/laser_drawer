@@ -1,8 +1,8 @@
-/* code for "make_ilda_frame" pd class.  This takes two messages: floating-point
+/* code for "makeildaframe" pd class.  This takes two messages: floating-point
 numbers, and "rats", and just prints something out for each message. */
 
 #include "m_pd.h"
-#include "stdlib.h"
+#include "ilda.h"
 #ifdef HAVE_OPENCV 
 #include "cv.h"
 #endif
@@ -12,11 +12,10 @@ numbers, and "rats", and just prints something out for each message. */
 #define CLIP(a,b,c) MINI(MAXI(a,b),c)
 #define PT_COORD_MIN -32768
 #define PT_COORD_MAX 32767
-#define TRAME_SIZE_MIN 1024
 
-    /* the data structure for each copy of "make_ilda_frame".  In this case we
+    /* the data structure for each copy of "makeildaframe".  In this case we
     only need pd's obligatory header (of type t_object). */
-typedef struct make_ilda_frame
+typedef struct makeildaframe
 {
   t_object x_ob;
   t_outlet *m_dataout;
@@ -25,26 +24,21 @@ typedef struct make_ilda_frame
   short *short_data[3];
   unsigned int buffer_size, list_length;
   t_atom *trame;
-#ifdef HAVE_OPENCV
-  CvMat *map_matrix;
-#endif
-  int perspective_correction, remove_extra_zeros, zero_padding;
-  
-  float scale[3];
-  float offset[3];
+  t_ilda_settings settings;
+  int perspective_correction;
 
-} t_make_ilda_frame;
+} t_makeildaframe;
 
-    /* this is called back when make_ilda_frame gets a "bang" message */
-void make_ilda_frame_bang(t_make_ilda_frame *x)
+    /* this is called back when makeildaframe gets a "bang" message */
+void makeildaframe_bang(t_makeildaframe *x)
 {
     outlet_anything(x->m_dataout, gensym("frame"), x->list_length, x->trame);
     x=NULL; /* don't warn about unused variables */
 }
 
-    /* this is called back when make_ilda_frame gets a "float" message (i.e., a
+    /* this is called back when makeildaframe gets a "float" message (i.e., a
     number.) */
-void make_ilda_frame_float(t_make_ilda_frame *x, t_float a)
+void makeildaframe_float(t_makeildaframe *x, t_float a)
 {
     t_word *vec[3];
     unsigned int nb_point, tab_size, i;
@@ -69,15 +63,6 @@ void make_ilda_frame_float(t_make_ilda_frame *x, t_float a)
     a=MAXI(10,a);
 	nb_point=MINI(a,tab_size);
 	
-	// truncating to remove useless OFF points
-	if ( x->remove_extra_zeros ){
-		for ( i=nb_point-1; i>10; i--){
-			if (vec[2][i].w_float!=0) break;
-			} // on scanne la table de blanking à partir de la fin et on enlève tous les 0 en laissant au moins 2 points
-		nb_point=i+1;
-		//~ printf("truncating done. i : \t%d/\t%d\n",i,nb_point);
-	}
-	
 #ifdef HAVE_OPENCV 
 	// using OpenCV for perspective correction
 	CvMat *src, *dst;
@@ -101,8 +86,8 @@ void make_ilda_frame_float(t_make_ilda_frame *x, t_float a)
 	
 	// converting float to short
 	for ( i=0;i<nb_point;i++ ){
-		x->short_data[0][i]=(int) CLIP((( *(pt) + x->offset[0] )* x->scale[0]),PT_COORD_MIN,PT_COORD_MAX);
-		x->short_data[1][i]=(int) CLIP((( *(pt+1) + x->offset[1] )* x->scale[1]),PT_COORD_MIN,PT_COORD_MAX);
+		x->short_data[0][i]=(int) CLIP((( *(pt) + x->settings.offset[0] )* x->settings.scale[0]),PT_COORD_MIN,PT_COORD_MAX);
+		x->short_data[1][i]=(int) CLIP((( *(pt+1) + x->settings.offset[1] )* x->settings.scale[1]),PT_COORD_MIN,PT_COORD_MAX);
 		x->short_data[2][i]=(int) CLIP((( vec[2][i].w_float + x->offset[2] )* x->scale[2]),0,255);
 		//~ printf("%d\t(%d,%d,%d)\n",i,x->short_data[0][i],x->short_data[1][i],x->short_data[2][i]);
 		//~ printf("%d\t(%.2f,%.2f,%.2f)\n",i,*pt,*(pt+1),x->short_data[2][i]);
@@ -112,9 +97,9 @@ void make_ilda_frame_float(t_make_ilda_frame *x, t_float a)
 #else
 		// copy directly from table to array
 		for ( i=0;i<nb_point;i++ ){
-		x->short_data[0][i]=(int) CLIP((( vec[0][i].w_float + x->offset[0] )* x->scale[0]),PT_COORD_MIN,PT_COORD_MAX);
-		x->short_data[1][i]=(int) CLIP((( vec[1][i].w_float + x->offset[1] )* x->scale[1]),PT_COORD_MIN,PT_COORD_MAX);
-		x->short_data[2][i]=(int) CLIP((( vec[2][i].w_float + x->offset[2] )* x->scale[2]),0,255);
+		x->short_data[0][i]=(int) CLIP((( vec[0][i].w_float + x->settings.offset[0] )* x->settings.scale[0]),PT_COORD_MIN,PT_COORD_MAX);
+		x->short_data[1][i]=(int) CLIP((( vec[1][i].w_float + x->settings.offset[1] )* x->settings.scale[1]),PT_COORD_MIN,PT_COORD_MAX);
+		x->short_data[2][i]=(int) CLIP((  vec[2][i].w_float * 255),0,255);
 	}
 #endif
 	
@@ -158,14 +143,6 @@ void make_ilda_frame_float(t_make_ilda_frame *x, t_float a)
 	x->trame[2].a_w.w_float = (float) (nb_segment & 0xff); // LSB du nb de segment
 	x->list_length+=3;
 	
-	if ( x->zero_padding ){
-		// zero padding
-		for ( i=x->list_length ; i<TRAME_SIZE_MIN ; i++){
-				ap++->a_w.w_float=0.;
-				x->list_length++;
-		}
-	}
-	
 	//~ printf("send %d bytes\n", x->list_length);
 	outlet_anything(x->m_dataout, gensym("frame"), x->list_length, x->trame);
 
@@ -186,8 +163,92 @@ void make_ilda_frame_float(t_make_ilda_frame *x, t_float a)
     x=NULL; /* don't warn about unused variables */
 }
 
-    /* this is called when make_ilda_frame gets the message, "settab". */
-void make_ilda_frame_settab(t_make_ilda_frame *x, t_symbol* s, int ac, t_atom* av)
+void makeildaframe_send_setting(t_makeildaframe *x)
+{
+    t_atom frame[(ILDA_SETTING_SIZE + ILDA_HEADER_SIZE)*sizeof(t_atom)];
+    
+    makeildaframe_makeheader(&frame, ILDA_SETTING_SIZE, 1);
+    
+    char setting_trame[ILDA_SETTING_SIZE];
+    
+    union intfloat32
+    {
+        int     i;
+        float   f;
+    };
+    union intfloat32 if32;
+    
+    int i = 0;
+    if32.f = x->settings.offset[0];
+    *((int4byte *) setting_trame+i) = htonl(if32.i);
+    i+=4;
+    
+    if32.f = x->settings.offset[1];
+    *((int4byte *) setting_trame+i) = htonl(if32.i);
+    i+=4;
+    
+    if32.f = x->settings.scale[0];
+    *((int4byte *) setting_trame+i) = htonl(if32.i);
+    i+=4;
+    
+    if32.f = x->settings.scale[1];
+    *((int4byte *) setting_trame+i) = htonl(if32.i);
+    i+=4;
+    
+    if32.f = x->settings.intensity;
+    *((int4byte *) setting_trame+i) = htonl(if32.i);
+    i+=4;
+    
+    if32.f = x->settings.angle_correction;
+    *((int4byte *) setting_trame+i) = htonl(if32.i);
+    i+=4;
+    
+    if32.f = x->settings.end_line_correction;
+    *((int4byte *) setting_trame+i) = htonl(if32.i);
+    i+=4;
+    
+    if32.f = x->settings.scan_freq;
+    *((int4byte *) setting_trame+i) = htonl(if32.i);
+    i+=4;
+    
+    int j;
+    for ( j=0; j < i ; j++){
+        SETFLOAT(&frame[i], setting_trame[i]);
+    }
+    
+    SETFLOAT(&frame[i], x->settings.invert[0]);
+    i++;
+    SETFLOAT(&frame[i], x->settings.invert[1]);
+    i++;
+    SETFLOAT(&frame[i], x->settings.invert[3]);
+    i++;
+    SETFLOAT(&frame[i], x->settings.blanking_off);
+    i++;
+    
+    SETFLOAT(&frame[i], x->settings.mode);
+    i++;
+    
+    
+    outlet_list(x->m_dataout, gensym("ildaframe"), i, frame);
+}
+
+void makeildaframe_makeheader(t_atom *frame, int size, int type)
+{
+    SETFLOAT(&frame[0],'I');
+    SETFLOAT(&frame[1],'L');
+    SETFLOAT(&frame[2],'D');
+    SETFLOAT(&frame[3],'A');
+    
+    SETFLOAT(&frame[4], (size & 0xFF000000) >> 24);
+    SETFLOAT(&frame[5], (size & 0xFF0000) >> 16);
+    SETFLOAT(&frame[6], (size & 0xFF00) >> 8);
+    SETFLOAT(&frame[7], size & 0xFF);
+    
+    SETFLOAT(&frame[8], type); //~ 0 is data trame, 1 is setting trame
+}
+
+    /* this is called when makeildaframe gets the message, "settab". */
+void makeildaframe_settab(t_makeildaframe *x, t_symbol* s, int ac, t_atom* av)
 {
 	if (ac != 3 ) {
 		error("settab need 3 args : X,Y and color");
@@ -209,35 +270,51 @@ void make_ilda_frame_settab(t_make_ilda_frame *x, t_symbol* s, int ac, t_atom* a
     x=NULL; /* don't warn about unused variables */
 }
 
-void make_ilda_frame_scale(t_make_ilda_frame *x, t_symbol* s, int ac, t_atom* av){
+void makeildaframe_scale(t_makeildaframe *x, t_symbol* s, int ac, t_atom* av){
 	int i;
-	if (ac != 3) {
-		error("scale message need 3 float arg");
+	if (ac < 2) {
+		error("scale message need at least 2 float arg");
 		return;
 	}
 	
-	for (i=0;i<3;i++){
+	for (i=0;i<ac;i++){
 		if ( av[i].a_type == A_FLOAT )
-			x->scale[i]=av[i].a_w.w_float;
-		else error("scale message need 3 float arg");
+			x->settings.scale[i]=av[i].a_w.w_float;
+		else error("scale message accepts only float arg");
 	}
 }
 
-void make_ilda_frame_offset(t_make_ilda_frame *x, t_symbol* s, int ac, t_atom* av){
+void makeildaframe_offset(t_makeildaframe *x, t_symbol* s, int ac, t_atom* av){
 	int i;
-	if (ac != 3) {
-		error("offset message need 3 float arg");
+	if (ac < 2) {
+		error("offset message need at least 2 float arg");
 		return;
 	}
 	
-	for (i=0;i<3;i++){
+	for (i=0;i<ac;i++){
 		if ( av[i].a_type == A_FLOAT )
-			x->offset[i]=av[i].a_w.w_float;
-		else error("offset message need 3 float arg");
+			x->settings.offset[i]=av[i].a_w.w_float;
+		else error("offset message accepts only float arg");
 	}
+    
 }
 
-void make_ilda_frame_dst_point(t_make_ilda_frame *x, t_symbol* s, int ac, t_atom* av)
+void makeildaframe_invert(t_makeildaframe *x, t_symbol* s, int ac, t_atom* av)
+{
+    int i;
+    if (ac < 2) {
+		error("invert message need at least 2 float arg");
+		return;
+	}
+    
+    for (i=0;i<ac;i++){
+        if ( av[i].a_type == A_FLOAT )
+			x->settings.invert[i]=av[i].a_w.w_float>0?1:0;
+		else error("invert message accept only float arg");
+    }
+}
+
+void makeildaframe_dst_point(t_makeildaframe *x, t_symbol* s, int ac, t_atom* av)
 {
 #ifdef HAVE_OPENCV
 
@@ -283,7 +360,7 @@ void make_ilda_frame_dst_point(t_make_ilda_frame *x, t_symbol* s, int ac, t_atom
 #endif
 }
 
-void make_ilda_frame_perspective_correction(t_make_ilda_frame *x, t_symbol* s, t_float f)
+void makeildaframe_perspective_correction(t_makeildaframe *x, t_symbol* s, t_float f)
 {
 #ifdef HAVE_OPENCV
 	x->perspective_correction=(f!=0);
@@ -294,19 +371,7 @@ void make_ilda_frame_perspective_correction(t_make_ilda_frame *x, t_symbol* s, t
 #endif
 }
 
-void make_ilda_frame_remove_extra_zeros(t_make_ilda_frame *x, t_symbol* s, t_float f)
-{
-	x->remove_extra_zeros=(f!=0);
-	return;
-}
-
-void make_ilda_frame_zero_padding(t_make_ilda_frame *x, t_symbol* s, t_float f)
-{
-	x->zero_padding=(f!=0);
-	return;
-}
-
-void *make_ilda_frame_free(t_make_ilda_frame *x){
+void *makeildaframe_free(t_makeildaframe *x){
 	free(x->raw_data);
 	free(x->short_data[0]);
 	free(x->short_data[1]);
@@ -322,15 +387,15 @@ void *make_ilda_frame_free(t_make_ilda_frame *x){
 #endif
 }
 
-    /* this is a pointer to the class for "make_ilda_frame", which is created in the
+    /* this is a pointer to the class for "makeildaframe", which is created in the
     "setup" routine below and used to create new ones in the "new" routine. */
-t_class *make_ilda_frame_class;
+t_class *makeildaframe_class;
 
 
-    /* this is called when a new "make_ilda_frame" object is created. */
-void *make_ilda_frame_new(t_float buffer_size)
+    /* this is called when a new "makeildaframe" object is created. */
+void *makeildaframe_new(t_float buffer_size)
 {
-    t_make_ilda_frame *x = (t_make_ilda_frame *)pd_new(make_ilda_frame_class);
+    t_makeildaframe *x = (t_makeildaframe *)pd_new(makeildaframe_class);
 	if ( !buffer_size ) {
 		error("first arg (buffer size) should be > 0");
 		return;
@@ -359,14 +424,13 @@ void *make_ilda_frame_new(t_float buffer_size)
 		x->trame[i].a_type=A_FLOAT; // trame is only populate with float
 		x->trame[i].a_w.w_float = 0;
 	}
+    
+    x->settings.offset[0]=0.;
+    x->settings.offset[1]=0.;
+    x->settings.scale[0]=1.;
+    x->settings.scale[1]=1.;
 
-	for ( i=0;i<3;i++ ){
-		x->offset[i]=0.;
-		x->scale[i]=1.;
-	}
 	x->perspective_correction = 0;
-	x->remove_extra_zeros=0;
-	x->zero_padding=0;
 
 #ifdef HAVE_OPENCV
 	x->map_matrix=cvCreateMat(3,3,CV_32FC1);
@@ -382,23 +446,21 @@ void *make_ilda_frame_new(t_float buffer_size)
 }
 
     /* this is called once at setup time, when this code is loaded into Pd. */
-void make_ilda_frame_setup(void)
+void makeildaframe_setup(void)
 {
-    make_ilda_frame_class = class_new(gensym("make_ilda_frame"), (t_newmethod)make_ilda_frame_new, (t_newmethod)make_ilda_frame_free, 
-			sizeof(t_make_ilda_frame), 0, A_DEFFLOAT, 0);
-    class_addmethod(make_ilda_frame_class, (t_method)make_ilda_frame_settab, gensym("settab"), A_GIMME, 0);
-    class_addmethod(make_ilda_frame_class, (t_method)make_ilda_frame_scale, gensym("scale"), A_GIMME, 0);
-    class_addmethod(make_ilda_frame_class, (t_method)make_ilda_frame_offset, gensym("offset"), A_GIMME, 0);
-    class_addmethod(make_ilda_frame_class, (t_method)make_ilda_frame_dst_point, gensym("dst_point"), A_GIMME, 0);
-    class_addmethod(make_ilda_frame_class, (t_method)make_ilda_frame_perspective_correction, gensym("perspective_correction"), A_FLOAT, 0);
-    class_addmethod(make_ilda_frame_class, (t_method)make_ilda_frame_remove_extra_zeros, gensym("remove_extra_zeros"), A_FLOAT, 0);
-    class_addmethod(make_ilda_frame_class, (t_method)make_ilda_frame_zero_padding, gensym("zero_padding"), A_FLOAT, 0);
-    class_addbang(make_ilda_frame_class, make_ilda_frame_bang);
-    class_addfloat(make_ilda_frame_class, make_ilda_frame_float);
+    makeildaframe_class = class_new(gensym("makeildaframe"), (t_newmethod)makeildaframe_new, (t_newmethod)makeildaframe_free, 
+			sizeof(t_makeildaframe), 0, A_DEFFLOAT, 0);
+    class_addmethod(makeildaframe_class, (t_method)makeildaframe_settab, gensym("settab"), A_GIMME, 0);
+    class_addmethod(makeildaframe_class, (t_method)makeildaframe_dst_point, gensym("dst_point"), A_GIMME, 0);
+    class_addmethod(makeildaframe_class, (t_method)makeildaframe_perspective_correction, gensym("perspective_correction"), A_FLOAT, 0);
+    class_addmethod(makeildaframe_class, (t_method)makeildaframe_offset, gensym("offset"), A_GIMME, 0);
+    class_addmethod(makeildaframe_class, (t_method)makeildaframe_scale, gensym("scale"), A_GIMME, 0);
+    class_addbang(makeildaframe_class, makeildaframe_bang);
+    class_addfloat(makeildaframe_class, makeildaframe_float);
 
 #ifdef HAVE_OPENCV
-    post("make_ilda_frame by Antoine Villeret,\n\tbuild on %s at %s with OpenCV support.",__DATE__, __TIME__);
+    post("makeildaframe by Antoine Villeret,\n\tbuild on %s at %s with OpenCV support.",__DATE__, __TIME__);
 #else    
-	post("make_ilda_frame by Antoine Villeret,\n\tbuild on %s at %s.",__DATE__, __TIME__);
+	post("makeildaframe by Antoine Villeret,\n\tbuild on %s at %s.",__DATE__, __TIME__);
 #endif
 }

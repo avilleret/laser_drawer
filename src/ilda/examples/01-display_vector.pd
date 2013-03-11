@@ -1,4 +1,4 @@
-#N canvas 20 762 512 300 10;
+#N canvas 654 678 512 300 10;
 #X obj 264 16 gemwin;
 #X msg 264 -4 create \, 1;
 #X obj 288 72 r size;

@@ -129,7 +129,7 @@ static void *ildafile_new(t_symbol *s, int argc, t_atom *argv)
         error ("ildafile: Unable to allocate %lu bytes for buffer", x->x_buf_length);
     x->x_info_outlet = outlet_new(&x->x_obj, gensym("info"));
     
-    x->settings.invert_blancking=1;
+    x->settings.invert[2]=1;
     return (void *)x;
 }
 
@@ -469,7 +469,7 @@ static void decode_format_0(t_ildafile* x, unsigned int index){
         //~ byte 6 : Color Lookup Table index
         //~ byte 7 :    0x80h is the image end bit (when its 1, this is the last point)
         //~             0x40h is the blanking bit
-        if ( x->settings.invert_blancking ){
+        if ( x->settings.invert[2] ){
             x->channel[ILDA_CH_R].vec[j].w_float= 1 - ((x->x_buf[i+6] >> 6) & 0x1);
             x->channel[ILDA_CH_G].vec[j].w_float= x->x_buf[i+7] / 255.;
             x->channel[ILDA_CH_B].vec[j].w_float= 1 - ((x->x_buf[i+6] >> 6) & 0x1);
