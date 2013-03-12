@@ -218,7 +218,7 @@ int generic_handler(const char *path, const char *types, lo_arg **argv,
     for (i=0; i<argc; i++) {
         if (types[i]=='b'){
             lo_blob b = argv[i];
-            printf("c'est un blob de taille : %d\n", lo_blob_datasize(b)/sizeof(t_word));
+            size_t size = lo_blob_datasize(b)/sizeof(t_word);
             int channel=-1;
             if(!strcmp(path,"/array/x")){
                 channel=ILDA_CH_X;
@@ -226,19 +226,22 @@ int generic_handler(const char *path, const char *types, lo_arg **argv,
                 channel=ILDA_CH_Y;
             }
             if (channel<0) return 1;
-            printf("memcpy to array %d\n", channel);
-            //~ memcpy(lo_blob_dataptr(b), x->channel[channel].vec, lo_blob_datasize(b));
-            printf("done\n");
-            garray_redraw(x->channel[channel].array);
-            t_word *data = lo_blob_dataptr(b);
-            int j;
-            for (j=0; j<10; j++) {
-                printf("d[%d]=%.2f\n", j, data[j].w_float);
+            if ( !x->channel[channel].array ){
+                error("settab first");
+                return 0;
             }
+            
+            garray_resize_long(x->channel[channel].array,size);
+            if (!garray_getfloatwords(x->channel[channel].array, &(x->channel[channel].vecsize), &(x->channel[channel].vec))){
+                error("%s: can't resize correctly", x->channel[channel].arrayname->s_name);
+                return 0;
+            } 
+            
+            t_word *data = lo_blob_dataptr(b);
+            memcpy(x->channel[channel].vec, data, lo_blob_datasize(b));
+            garray_redraw(x->channel[channel].array);
         }
-        printf("arg %d '%c', argc : %d", i, types[i], argc);
-        lo_arg_pp(types[i], argv[i]);
-        printf("\n");
+
     }
     printf("\n");
     fflush(stdout);

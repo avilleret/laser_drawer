@@ -44,6 +44,7 @@ void ildasend_bang(t_ildasend *x)
             if (!garray_getfloatwords(x->channel[i].array, &x->channel[i].vecsize, &x->channel[i].vec)){
                 error("error when getting data from array...");
             } else {
+                //~ WARNING ! here I assume that data is parse in same way, wich is not the case on non 64-bit system...
                 lo_blob blob = lo_blob_new(x->channel[i].vecsize*sizeof(t_word),x->channel[i].vec);
                 char path[30];
                 sprintf(path, "/array/%s", x->channel[i].channelname->s_name);
@@ -251,6 +252,13 @@ void ildasend_connect(t_ildasend *x, t_symbol* hostname, float port){
     }
 }
 
+void ildasend_disconnect(t_ildasend *x){
+    lo_address_free(x->OSC_destination);
+    x->OSC_destination=NULL;
+    
+    outlet_float(x->m_dataout, 0.);
+}
+
 void ildasend_scale(t_ildasend *x, t_symbol* s, int ac, t_atom* av){
 	int i;
 	if (ac < 2) {
@@ -430,6 +438,7 @@ void ildasend_setup(void)
     class_addmethod(ildasend_class, (t_method)ildasend_offset, gensym("offset"), A_GIMME, 0);
     class_addmethod(ildasend_class, (t_method)ildasend_scale, gensym("scale"), A_GIMME, 0);
     class_addmethod(ildasend_class, (t_method)ildasend_connect, gensym("connect"), A_SYMBOL, A_FLOAT, 0);
+    class_addmethod(ildasend_class, (t_method)ildasend_disconnect, gensym("disconnect"), A_CANT, 0);
     class_addbang(ildasend_class, ildasend_bang);
     class_addfloat(ildasend_class, ildasend_float);
 
