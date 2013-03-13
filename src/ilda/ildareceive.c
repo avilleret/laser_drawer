@@ -15,7 +15,7 @@ typedef struct ildareceive
   t_ilda_channel channel[5];
   t_ilda_settings settings;
   lo_server_thread OSC_server;
-  int perspective_correction;
+  float perspective_correction;
 #ifdef HAVE_OPENCV
   CvMat *map_matrix;
 #endif
@@ -130,6 +130,71 @@ void decode_data(t_ildareceive *x, unsigned int ac, t_atom* av){
     av=NULL;
 }
 
+static void ildareceive_perspective_correction(t_ildareceive *x)
+{
+    if ( !x->perspective_correction ) return;
+#ifdef HAVE_OPENCV 
+	// using OpenCV for perspective correction
+	CvMat *src, *dst;
+    int size = x->channel[0].vecsize; //~ assume all channels have the same size
+	src=cvCreateMat(1, size, CV_32FC2 ); 
+	
+	float *pt;
+	pt=src->data.fl;
+	
+    //~ TODO : AV could this be improve with cases for 64-bit and for 32-bit system and a pointer instead of copying data ?
+    int i,j;
+    
+    memcpy(pt, x->channel[0].vec, size*sizeof(float));
+    memcpy(pt+size*sizeof(float), x->channel[1].vec, size*sizeof(float));
+    
+    printf("sizeof(float) : %d,\ src.step : %d\n",sizeof(float),src->step);
+    i=0;j=0;
+    printf("(%d, %d) %d : %.3f\n",i,j,i*src->step/2+j,pt[i*src->step/2+j]);
+    i=0;j=1;
+    printf("(%d, %d) %d : %.3f\n",i,j,i*src->step/2+j,pt[i*src->step/2+j]);
+    i=1;j=0;
+    printf("(%d, %d) %d : %.3f\n",i,j,i*src->step/2+j,pt[i*src->step/2+j]);
+    i=1;j=1;
+    printf("(%d, %d) %d : %.3f\n",i,j,i*src->step/2+j,pt[i*src->step/2+j]);
+
+    dst=cvCreateMat(size, 1, CV_32FC2 );
+    cvPerspectiveTransform(src, dst, x->map_matrix);
+
+	pt=dst->data.fl;
+
+    i=0;j=0;
+    printf("(%d, %d) %d : %.3f\n",i,j,i*src->step/2+j,pt[i*src->step/2+j]);
+    i=0;j=1;
+    printf("(%d, %d) %d : %.3f\n",i,j,i*src->step/2+j,pt[i*src->step/2+j]);
+    i=1;j=0;
+    printf("(%d, %d) %d : %.3f\n",i,j,i*src->step/2+j,pt[i*src->step/2+j]);
+    i=1;j=1;
+    printf("(%d, %d) %d : %.3f\n",i,j,i*src->step/2+j,pt[i*src->step/2+j]);
+	
+    //~ update table
+    for ( i=0 ; i<size ; i++ ) {
+        x->channel[0].vec[i].w_float=CV_MAT_ELEM(*src, float, 0, i);
+        //~ x->channel[1].vec[i].w_float=CV_MAT_ELEM(*src, float, i, 1);
+    }
+    
+    //~ Release Matrix data
+	if (dst!=src) { 
+		cvReleaseMat(&dst);
+		dst=NULL;
+	}
+	if (src) {
+		cvReleaseMat(&src);
+		src=NULL;
+	}
+    
+#else
+    pd_error(x,"nonono ! you should build against OpenCV to use perspective correction !!");
+#endif
+
+    return;
+}
+
 static void ildareceive_error(int num, const char *msg, const char *path)
 {
     error("ildasend: ildareceive error %d in path %s: %s\n", num, path, msg);
@@ -234,65 +299,17 @@ int ildareceive_scan_freq(const char *path, const char *types, lo_arg **argv,
     return 0;
 }
 
-int ildasend_perspective_correction(const char *path, const char *types, lo_arg **argv,
+int ildareceive_enable_perspective_correction(const char *path, const char *types, lo_arg **argv,
 		    int argc, void *data, t_ildareceive *x)
 {
 #ifdef HAVE_OPENCV
 	x->perspective_correction=(argv[0]->f!=0);
+    post("perspective correction %1f",x->perspective_correction);
 	return 0;
 #else
 	pd_error(x,"ildasend: you need to compile with OpenCV to use this method (perspective_correction)");
 	return 0;
 #endif
-}
-
-static void ildareceive_perspective_correction(t_ildareceive *x)
-{
-    if ( !x->perspective_correction ) return;
-#ifdef HAVE_OPENCV 
-	// using OpenCV for perspective correction
-	CvMat *src, *dst;
-    int size = x->channel[0].vecsize; //~ assume all channels have the same size
-	src=cvCreateMat(size, 1, CV_32FC2 ); 
-	
-	uchar *pt;
-	pt=src->data.ptr;
-	
-    //~ TODO : AV could this be improve with a case for 64-bit and 32-bit system and a pointer instead of copying data ?
-    int i;
-    for ( i=0 ; i<size ; i++ ) {
-        *(pt++)=x->channel[0].vec[i].w_float;
-        *(pt++)=x->channel[1].vec[i].w_float;
-    }
-
-	if ( x->perspective_correction ){
-		dst=cvCreateMat(size, 1, CV_32FC2 );
-		cvPerspectiveTransform(src, dst, x->map_matrix);
-	} else dst=src; // if no transformation, just point to src data
-	
-	pt=dst->data.ptr;
-
-    //~ update table
-    for ( i=0 ; i<size ; i++ ) {
-        x->channel[0].vec[i].w_float=*(pt++);
-        x->channel[1].vec[i].w_float=*(pt++);
-    }
-    
-    //~ Release Matrix data
-	if (dst!=src) { 
-		cvReleaseMat(&dst);
-		dst=NULL;
-	}
-	if (src) {
-		cvReleaseMat(&src);
-		src=NULL;
-	}
-    
-#else
-    pd_error(x,"nonono ! you should build against OpenCV to use perspective correction !!");
-#endif
-
-    return;
 }
 
 int ildareceive_generic_handler(const char *path, const char *types, lo_arg **argv,
@@ -343,6 +360,45 @@ int ildareceive_generic_handler(const char *path, const char *types, lo_arg **ar
     return 0;
 }
 
+void ildareceive_dst_point(const char *path, const char *types, lo_arg **argv,
+		    int argc, void *data, t_ildareceive *x)
+{
+#ifdef HAVE_OPENCV
+	
+	CvPoint2D32f src_point[4], dst_point[4];
+	
+	src_point[0].x=-1.;
+	src_point[0].y=1.;
+	src_point[1].x=1.;
+	src_point[1].y=1.;
+	src_point[2].x=1.;
+	src_point[2].y=-1.;
+	src_point[3].x=-1.;
+	src_point[3].y=-1.;
+    
+	int i;
+    printf("points :\n");
+    for (i=0;i<4;i++){
+        dst_point[i].x=argv[2*i]->f;
+        printf("%f",dst_point[i].x);
+        dst_point[i].y=argv[2*i+1]->f;
+        printf("\t%f\n",dst_point[i].y);
+    }
+	
+	
+	cvGetPerspectiveTransform( src_point, dst_point , x->map_matrix );
+
+	printf("mapMatrix :\n");
+	printf("%.2f\t%.2f\t%.2f\n", CV_MAT_ELEM(*(x->map_matrix),float,0,0), CV_MAT_ELEM(*(x->map_matrix),float,1,0), CV_MAT_ELEM(*(x->map_matrix),float,2,0));
+	printf("%.2f\t%.2f\t%.2f\n", CV_MAT_ELEM(*(x->map_matrix),float,0,1), CV_MAT_ELEM(*(x->map_matrix),float,1,1), CV_MAT_ELEM(*(x->map_matrix),float,2,1));
+	printf("%.2f\t%.2f\t%.2f\n", CV_MAT_ELEM(*(x->map_matrix),float,0,2), CV_MAT_ELEM(*(x->map_matrix),float,1,2), CV_MAT_ELEM(*(x->map_matrix),float,2,2));
+	return;
+#else 
+	pd_error(x,"ildasend: you need to compile with OpenCV to use this method (%s)",s->s_name);
+	return;
+#endif
+}
+
 void ildareceive_bind ( t_ildareceive *x, t_float port)
 {
     if(x->OSC_server){
@@ -354,8 +410,6 @@ void ildareceive_bind ( t_ildareceive *x, t_float port)
     sprintf(portstr, "%d", (int) port);
     x->OSC_server = lo_server_thread_new(portstr, ildareceive_error);
     
-    //~ lo_server_thread_add_method(x->OSC_server, "/setting", NULL, ildareceive_parse_ssetting, x);
-    
     lo_server_thread_add_method(x->OSC_server, "/arrays", NULL, ildareceive_generic_handler, x);
     lo_server_thread_add_method(x->OSC_server, "/setting/offset", "fff", ildareceive_offset, x);
     lo_server_thread_add_method(x->OSC_server, "/setting/scale", "fff", ildareceive_scale, x);
@@ -365,7 +419,8 @@ void ildareceive_bind ( t_ildareceive *x, t_float port)
     lo_server_thread_add_method(x->OSC_server, "/setting/angle_correction", "f", ildareceive_angle_correction, x);
     lo_server_thread_add_method(x->OSC_server, "/setting/end_line_correction", "f", ildareceive_end_line_correction, x);
     lo_server_thread_add_method(x->OSC_server, "/setting/scan_freq", "f", ildareceive_scan_freq, x);
-    lo_server_thread_add_method(x->OSC_server, "/setting/perspective_correction", "f", ildareceive_perspective_correction, x);
+    lo_server_thread_add_method(x->OSC_server, "/setting/perspective_correction", "f", ildareceive_enable_perspective_correction, x);
+    lo_server_thread_add_method(x->OSC_server, "/setting/dst_point", "ffffffff", ildareceive_dst_point, x);
     
     if ( lo_server_thread_start(x->OSC_server) < 0 ){
         pd_error(x,"ildasend: ildareceive : can't start server");
@@ -373,57 +428,6 @@ void ildareceive_bind ( t_ildareceive *x, t_float port)
     } else {
         outlet_float(x->m_dataout, 1);
     }
-}
-
-void ildasend_dst_point(t_ildareceive *x, t_symbol* s, t_float f0, t_float f1, t_float f2, t_float f3, t_float f4, t_float f5, t_float f6, t_float f7)
-{
-#ifdef HAVE_OPENCV
-
-	//~ int i;
-	//~ if (ac != 8) {
-		//~ pd_error(x,"ildasend: wrong arg number : dst_point message need 8 float arg (4 x,y pairs)");
-		//~ return;
-	//~ }
-	//~ 
-	//~ for (i=0;i<8;i++){
-		//~ if (av[i].a_type != A_FLOAT) {
-			//~ pd_error(x,"ildasend: wrong arg type : dst_point message need 8 float arg (4 x,y pairs)");
-			//~ return;
-		//~ }
-	//~ }
-	
-	CvPoint2D32f src_point[4], dst_point[4];
-	
-	src_point[0].x=-1;
-	src_point[0].y=-1;
-	src_point[1].x=1;
-	src_point[1].y=-1;
-	src_point[2].x=1;
-	src_point[2].y=1;
-	src_point[3].x=-1;
-	src_point[3].y=1;
-	
-	dst_point[0].x=f0;
-	dst_point[0].y=f1;
-	dst_point[1].x=f2;
-	dst_point[1].y=f3;
-	dst_point[2].x=f4;
-	dst_point[2].y=f5;
-	dst_point[3].x=f6;
-	dst_point[3].y=f7;
-	
-	
-	cvGetPerspectiveTransform( src_point, dst_point , x->map_matrix );
-
-	//~ printf("mapMatrix :\n");
-	//~ printf("%.2f\t%.2f\t%.2f\n", CV_MAT_ELEM(*(x->map_matrix),float,0,0), CV_MAT_ELEM(*(x->map_matrix),float,1,0), CV_MAT_ELEM(*(x->map_matrix),float,2,0));
-	//~ printf("%.2f\t%.2f\t%.2f\n", CV_MAT_ELEM(*(x->map_matrix),float,0,1), CV_MAT_ELEM(*(x->map_matrix),float,1,1), CV_MAT_ELEM(*(x->map_matrix),float,2,1));
-	//~ printf("%.2f\t%.2f\t%.2f\n", CV_MAT_ELEM(*(x->map_matrix),float,0,2), CV_MAT_ELEM(*(x->map_matrix),float,1,2), CV_MAT_ELEM(*(x->map_matrix),float,2,2));
-	return;
-#else 
-	pd_error(x,"ildasend: you need to compile with OpenCV to use this method (%s)",s->s_name);
-	return;
-#endif
 }
 
 void ildareceive_unbind( t_ildareceive *x ){

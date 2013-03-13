@@ -25,7 +25,7 @@ typedef struct ildasend
   unsigned int buffer_size, list_length;
   t_atom *trame;
   t_ilda_settings settings;
-  int perspective_correction;
+  float perspective_correction;
   lo_address OSC_destination;
   t_float dst_point[8];
 
@@ -75,17 +75,13 @@ void ildasend_bang(t_ildasend *x)
             for ( j=0; j<x->channel[i].vecsize; j++ ){
                 data[j]=x->channel[i].vec[j].w_float;
             }
-            printf("allocate blob\n");
             blob[i] = lo_blob_new(x->channel[i].vecsize*sizeof(t_float),data);
-            printf("free data\n");
             free(data);
         }
     }
     
-    printf("send blob\n");
     lo_send(x->OSC_destination, "/arrays", "bbbbb", blob[0], blob[1], blob[2], blob[3], blob[4]);
 
-    printf("free blob\n");
     for (i=0;i<5;i++){
         if (blob[i]) {
             lo_blob_free(blob[i]);
@@ -184,7 +180,7 @@ void ildasend_send_setting(t_ildasend *x)
         lo_send(x->OSC_destination, "/setting/end_line_correction", "f", x->settings.end_line_correction );
         lo_send(x->OSC_destination, "/setting/scan_freq", "f", x->settings.scan_freq );
         lo_send(x->OSC_destination, "/setting/dst_point", "ffffffff", x->dst_point[0], x->dst_point[1], x->dst_point[2], x->dst_point[3], x->dst_point[4], x->dst_point[5], x->dst_point[6], x->dst_point[7] );
-
+        lo_send(x->OSC_destination, "/setting/perspective_correction", "f", x->perspective_correction );
     }
 }
 
@@ -235,7 +231,6 @@ void ildasend_connect(t_ildasend *x, t_symbol* hostname, float port){
     
     if ( x->OSC_destination ){
         outlet_float(x->m_dataout, 1.);
-        ildasend_send_setting(x);
     } else {
         outlet_float(x->m_dataout, 0.);
     }
@@ -276,7 +271,7 @@ void ildasend_dst_point(t_ildasend *x, t_symbol* s, int ac, t_atom *av)
 		}
 	}
     
-    for (i=0;i<4;i++){
+    for (i=0;i<8;i++){
         x->dst_point[i]=av[i].a_w.w_float;
     }
         
@@ -334,17 +329,19 @@ void ildasend_scan_freq(t_ildasend *x, t_symbol* s, t_float scan_freq)
     if ( x->OSC_destination ){
         lo_send(x->OSC_destination, "/setting/scan_freq", "f", x->settings.scan_freq );
     }
+    return;
 }
 
 void ildasend_perspective_correction(t_ildasend *x, t_symbol* s, t_float f)
 {
-#ifdef HAVE_OPENCV
 	x->perspective_correction=(f!=0);
+    
+    if ( x->OSC_destination ){
+        lo_send(x->OSC_destination, "/setting/perspective_correction", "f", x->perspective_correction );
+    }
+    
 	return;
-#else
-	pd_error(x,"ildasend: you need to compile with OpenCV to use this method (perspective_correction)");
-	return;
-#endif
+
 }
 
 void *ildasend_free(t_ildasend *x){
@@ -417,7 +414,7 @@ void ildasend_setup(void)
     ildasend_class = class_new(gensym("ildasend"), (t_newmethod)ildasend_new, (t_newmethod)ildasend_free, 
 			sizeof(t_ildasend), 0, A_DEFFLOAT, 0);
     class_addmethod(ildasend_class, (t_method)ildasend_settab, gensym("settab"), A_GIMME, 0);
-    class_addmethod(ildasend_class, (t_method)ildasend_dst_point, gensym("dst_point"), A_FLOAT, A_FLOAT, A_FLOAT, A_FLOAT, A_FLOAT, A_FLOAT, A_FLOAT, A_FLOAT, 0);
+    class_addmethod(ildasend_class, (t_method)ildasend_dst_point, gensym("dst_point"), A_GIMME, 0);
     class_addmethod(ildasend_class, (t_method)ildasend_perspective_correction, gensym("perspective_correction"), A_FLOAT, 0);
     class_addmethod(ildasend_class, (t_method)ildasend_offset, gensym("offset"), A_FLOAT, A_FLOAT, A_FLOAT, 0);
     class_addmethod(ildasend_class, (t_method)ildasend_scale, gensym("scale"), A_FLOAT, A_FLOAT, A_FLOAT, 0);
@@ -427,6 +424,7 @@ void ildasend_setup(void)
     class_addmethod(ildasend_class, (t_method)ildasend_scan_freq, gensym("scan_freq"), A_FLOAT, 0);
     class_addmethod(ildasend_class, (t_method)ildasend_connect, gensym("connect"), A_SYMBOL, A_FLOAT, 0);
     class_addmethod(ildasend_class, (t_method)ildasend_disconnect, gensym("disconnect"), A_CANT, 0);
+    class_addmethod(ildasend_class, (t_method)ildasend_send_setting, gensym("sendsettings"), A_CANT, 0);
     class_addbang(ildasend_class, ildasend_bang);
     class_addfloat(ildasend_class, ildasend_float);
 
