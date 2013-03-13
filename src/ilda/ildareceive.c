@@ -15,6 +15,7 @@ typedef struct ildareceive
   t_ilda_channel channel[5];
   t_ilda_settings settings;
   lo_server_thread OSC_server;
+  int perspective_correction;
 #ifdef HAVE_OPENCV
   CvMat *map_matrix;
 #endif
@@ -24,7 +25,7 @@ t_class *ildareceive_class;
 
 void decode_data(t_ildareceive *x, unsigned int ac, t_atom* av){
     if ( !x->channel[0].array || !x->channel[1].array || !x->channel[2].array || !x->channel[3].array || !x->channel[4].array ){
-        error("you should specify x, y, r, g and b before");
+        pd_error(x,"ildasend: you should specify x, y, r, g and b before");
         return;
     }
     
@@ -47,12 +48,12 @@ void decode_data(t_ildareceive *x, unsigned int ac, t_atom* av){
     //~ resize tables
     for ( i=0; i<5; i++ ){
         if (!garray_getfloatwords(x->channel[i].array, &(x->channel[i].vecsize), &(x->channel[i].vec))){
-            error("%s: bad template", x->channel[i].arrayname->s_name);
+            pd_error(x,"ildasend: %s: bad template", x->channel[i].arrayname->s_name);
             return;
         } else if ( x->channel[i].vecsize != size ){
             garray_resize_long(x->channel[i].array,size);
             if (!garray_getfloatwords(x->channel[i].array, &(x->channel[i].vecsize), &(x->channel[i].vec))){
-                error("%s: can't resize correctly", x->channel[i].arrayname->s_name);
+                pd_error(x,"ildasend: %s: can't resize correctly", x->channel[i].arrayname->s_name);
                 return;
             } 
         }
@@ -131,16 +132,22 @@ void decode_data(t_ildareceive *x, unsigned int ac, t_atom* av){
 
 static void ildareceive_error(int num, const char *msg, const char *path)
 {
-    error("ildareceive error %d in path %s: %s\n", num, path, msg);
+    error("ildasend: ildareceive error %d in path %s: %s\n", num, path, msg);
 }
+
+//~ OSC parsing methods
 
 int ildareceive_offset(const char *path, const char *types, lo_arg **argv,
 		    int argc, void *data, t_ildareceive *x)
 {
     int i;
-    for(i=0; i<argc; i++){
+    t_atom atom_data[3];
+    for(i=0; i<3; i++){
         x->settings.offset[i]=argv[i]->f;
+        SETFLOAT(atom_data+i, x->settings.offset[i]);
     }
+    
+    outlet_anything(x->m_dataout, gensym("offset"), 3, atom_data);
     return 0;
 }
 
@@ -148,9 +155,13 @@ int ildareceive_scale(const char *path, const char *types, lo_arg **argv,
 		    int argc, void *data, t_ildareceive *x)
 {
     int i;
-    for(i=0; i<argc; i++){
+    t_atom atom_data[3];
+    for(i=0; i<3; i++){
         x->settings.scale[i]=argv[i]->f;
+        SETFLOAT(atom_data+i, x->settings.scale[i]);
     }
+    
+    outlet_anything(x->m_dataout, gensym("scale"), 3, atom_data);
     return 0;
 }
 
@@ -158,9 +169,13 @@ int ildareceive_invert(const char *path, const char *types, lo_arg **argv,
 		    int argc, void *data, t_ildareceive *x)
 {
     int i;
-    for(i=0; i<argc; i++){
+    t_atom atom_data[3];
+    for(i=0; i<3; i++){
         x->settings.invert[i]=argv[i]->f;
+        SETFLOAT(atom_data+i, x->settings.scale[i]);        
     }
+    
+    outlet_anything(x->m_dataout, gensym("invert"), 3, atom_data);
     return 0;
 }
 
@@ -168,9 +183,13 @@ int ildareceive_intensity(const char *path, const char *types, lo_arg **argv,
 		    int argc, void *data, t_ildareceive *x)
 {
     int i;
-    for(i=0; i<argc; i++){
+    t_atom atom_data[3];
+    for(i=0; i<3; i++){
         x->settings.intensity[i]=argv[i]->f;
+        SETFLOAT(atom_data+i, x->settings.intensity[i]);
     }
+    
+    outlet_anything(x->m_dataout, gensym("intensity"), 3, atom_data);
     return 0;
 }
 
@@ -178,6 +197,10 @@ int ildareceive_blanking_off(const char *path, const char *types, lo_arg **argv,
 		    int argc, void *data, t_ildareceive *x)
 {
     x->settings.blanking_off=argv[0]->f;
+    
+    t_atom atom_data;
+    SETFLOAT(&atom_data, x->settings.blanking_off);
+    outlet_anything(x->m_dataout, gensym("blanking_off"), 1, &atom_data);
     return 0;
 }
 
@@ -185,6 +208,9 @@ int ildareceive_angle_correction(const char *path, const char *types, lo_arg **a
 		    int argc, void *data, t_ildareceive *x)
 {
     x->settings.angle_correction=argv[0]->f;
+    t_atom atom_data;
+    SETFLOAT(&atom_data, x->settings.angle_correction);
+    outlet_anything(x->m_dataout, gensym("angle_correction"), 1, &atom_data);
     return 0;
 }
 
@@ -192,6 +218,9 @@ int ildareceive_end_line_correction(const char *path, const char *types, lo_arg 
 		    int argc, void *data, t_ildareceive *x)
 {
     x->settings.end_line_correction=argv[0]->f;
+    t_atom atom_data;
+    SETFLOAT(&atom_data, x->settings.end_line_correction);
+    outlet_anything(x->m_dataout, gensym("end_line_correction"), 0, &atom_data);
     return 0;
 }
 
@@ -199,60 +228,125 @@ int ildareceive_scan_freq(const char *path, const char *types, lo_arg **argv,
 		    int argc, void *data, t_ildareceive *x)
 {
     x->settings.scan_freq=argv[0]->f;
+    t_atom atom_data;
+    SETFLOAT(&atom_data, x->settings.scan_freq);
+    outlet_anything(x->m_dataout, gensym("scan_freq"), 0, &atom_data) ;
     return 0;
 }
 
-int ildareceive_array(const char *path, const char *types, lo_arg **argv,
+int ildasend_perspective_correction(const char *path, const char *types, lo_arg **argv,
 		    int argc, void *data, t_ildareceive *x)
 {
-    post("array method, path : %s", path);
-    return 0;
+#ifdef HAVE_OPENCV
+	x->perspective_correction=(argv[0]->f!=0);
+	return 0;
+#else
+	pd_error(x,"ildasend: you need to compile with OpenCV to use this method (perspective_correction)");
+	return 0;
+#endif
 }
 
-int generic_handler(const char *path, const char *types, lo_arg **argv,
-		    int argc, void *data, t_ildareceive *x)
+static void ildareceive_perspective_correction(t_ildareceive *x)
 {
+    if ( !x->perspective_correction ) return;
+#ifdef HAVE_OPENCV 
+	// using OpenCV for perspective correction
+	CvMat *src, *dst;
+    int size = x->channel[0].vecsize; //~ assume all channels have the same size
+	src=cvCreateMat(size, 1, CV_32FC2 ); 
+	
+	uchar *pt;
+	pt=src->data.ptr;
+	
+    //~ TODO : AV could this be improve with a case for 64-bit and 32-bit system and a pointer instead of copying data ?
     int i;
+    for ( i=0 ; i<size ; i++ ) {
+        *(pt++)=x->channel[0].vec[i].w_float;
+        *(pt++)=x->channel[1].vec[i].w_float;
+    }
 
-    printf("path: <%s>\n", path);
+	if ( x->perspective_correction ){
+		dst=cvCreateMat(size, 1, CV_32FC2 );
+		cvPerspectiveTransform(src, dst, x->map_matrix);
+	} else dst=src; // if no transformation, just point to src data
+	
+	pt=dst->data.ptr;
+
+    //~ update table
+    for ( i=0 ; i<size ; i++ ) {
+        x->channel[0].vec[i].w_float=*(pt++);
+        x->channel[1].vec[i].w_float=*(pt++);
+    }
+    
+    //~ Release Matrix data
+	if (dst!=src) { 
+		cvReleaseMat(&dst);
+		dst=NULL;
+	}
+	if (src) {
+		cvReleaseMat(&src);
+		src=NULL;
+	}
+    
+#else
+    pd_error(x,"nonono ! you should build against OpenCV to use perspective correction !!");
+#endif
+
+    return;
+}
+
+int ildareceive_generic_handler(const char *path, const char *types, lo_arg **argv,
+		    int argc, void *data, t_ildareceive *x)
+{
+    int i, rtn=1;
+    
+    //~ printf("path: %s\n", path);
+    
     for (i=0; i<argc; i++) {
         if (types[i]=='b'){
             lo_blob b = argv[i];
-            size_t size = lo_blob_datasize(b)/sizeof(t_word);
-            int channel=-1;
-            if(!strcmp(path,"/array/x")){
-                channel=ILDA_CH_X;
-            } else if(!strcmp(path,"/array/y")) {
-                channel=ILDA_CH_Y;
-            }
-            if (channel<0) return 1;
-            if ( !x->channel[channel].array ){
-                error("settab first");
+            size_t size = lo_blob_datasize(b)/sizeof(t_float);
+            
+            if ( !x->channel[i].arrayname ){
+                pd_error(x,"ildareceive: don't be so impatient, settab first...");
                 return 0;
             }
             
-            garray_resize_long(x->channel[channel].array,size);
-            if (!garray_getfloatwords(x->channel[channel].array, &(x->channel[channel].vecsize), &(x->channel[channel].vec))){
-                error("%s: can't resize correctly", x->channel[channel].arrayname->s_name);
+            x->channel[i].array=(t_garray *)pd_findbyclass(x->channel[i].arrayname, garray_class);
+            if ( !x->channel[i].array){
+                pd_error(x,"ildareceive: hoops ! where is array %s ??",x->channel[i].arrayname);
+                return 0;
+            }
+            
+            garray_resize_long(x->channel[i].array,size);
+            if (!garray_getfloatwords(x->channel[i].array, &(x->channel[i].vecsize), &(x->channel[i].vec))){
+                pd_error(x,"ildasend: %s: can't resize correctly", x->channel[i].arrayname->s_name);
                 return 0;
             } 
             
-            t_word *data = lo_blob_dataptr(b);
-            memcpy(x->channel[channel].vec, data, lo_blob_datasize(b));
-            garray_redraw(x->channel[channel].array);
+            if ( sizeof(t_float) == sizeof(t_word) ) {
+                t_word *data = lo_blob_dataptr(b);
+                memcpy(x->channel[i].vec, data, lo_blob_datasize(b));
+            } else {
+                int j;
+                t_float *data = lo_blob_dataptr(b);
+                for ( j=0; j<lo_blob_datasize(b)/sizeof(t_float); j++ ){
+                    x->channel[i].vec[j].w_float=data[j];
+                }
+            }
+            garray_redraw(x->channel[i].array);
         }
-
     }
-    printf("\n");
-    fflush(stdout);
+    
+    ildareceive_perspective_correction(x);
 
-    return 1;
+    return 0;
 }
 
-static void ildareceive_bind ( t_ildareceive *x, t_float port)
+void ildareceive_bind ( t_ildareceive *x, t_float port)
 {
     if(x->OSC_server){
-        error("receiveilda : already bounded to port %d", lo_server_thread_get_port(x->OSC_server));
+        pd_error(x,"ildasend: receiveilda : already bounded to port %d", lo_server_thread_get_port(x->OSC_server));
         return;
     }
     
@@ -262,7 +356,7 @@ static void ildareceive_bind ( t_ildareceive *x, t_float port)
     
     //~ lo_server_thread_add_method(x->OSC_server, "/setting", NULL, ildareceive_parse_ssetting, x);
     
-    lo_server_thread_add_method(x->OSC_server, NULL, NULL, generic_handler, x);
+    lo_server_thread_add_method(x->OSC_server, "/arrays", NULL, ildareceive_generic_handler, x);
     lo_server_thread_add_method(x->OSC_server, "/setting/offset", "fff", ildareceive_offset, x);
     lo_server_thread_add_method(x->OSC_server, "/setting/scale", "fff", ildareceive_scale, x);
     lo_server_thread_add_method(x->OSC_server, "/setting/invert", "fff", ildareceive_invert, x);
@@ -271,53 +365,105 @@ static void ildareceive_bind ( t_ildareceive *x, t_float port)
     lo_server_thread_add_method(x->OSC_server, "/setting/angle_correction", "f", ildareceive_angle_correction, x);
     lo_server_thread_add_method(x->OSC_server, "/setting/end_line_correction", "f", ildareceive_end_line_correction, x);
     lo_server_thread_add_method(x->OSC_server, "/setting/scan_freq", "f", ildareceive_scan_freq, x);
-    
-    lo_server_thread_add_method(x->OSC_server, "/array/x", NULL, ildareceive_array, x);
+    lo_server_thread_add_method(x->OSC_server, "/setting/perspective_correction", "f", ildareceive_perspective_correction, x);
     
     if ( lo_server_thread_start(x->OSC_server) < 0 ){
-        error("ildareceive : can't start server");
+        pd_error(x,"ildasend: ildareceive : can't start server");
         outlet_float(x->m_dataout, 0);
     } else {
         outlet_float(x->m_dataout, 1);
     }
 }
 
-static void ildareceive_settab ( t_ildareceive *x, t_symbol* s, unsigned int ac, t_atom* av )
+void ildasend_dst_point(t_ildareceive *x, t_symbol* s, t_float f0, t_float f1, t_float f2, t_float f3, t_float f4, t_float f5, t_float f6, t_float f7)
+{
+#ifdef HAVE_OPENCV
+
+	//~ int i;
+	//~ if (ac != 8) {
+		//~ pd_error(x,"ildasend: wrong arg number : dst_point message need 8 float arg (4 x,y pairs)");
+		//~ return;
+	//~ }
+	//~ 
+	//~ for (i=0;i<8;i++){
+		//~ if (av[i].a_type != A_FLOAT) {
+			//~ pd_error(x,"ildasend: wrong arg type : dst_point message need 8 float arg (4 x,y pairs)");
+			//~ return;
+		//~ }
+	//~ }
+	
+	CvPoint2D32f src_point[4], dst_point[4];
+	
+	src_point[0].x=-1;
+	src_point[0].y=-1;
+	src_point[1].x=1;
+	src_point[1].y=-1;
+	src_point[2].x=1;
+	src_point[2].y=1;
+	src_point[3].x=-1;
+	src_point[3].y=1;
+	
+	dst_point[0].x=f0;
+	dst_point[0].y=f1;
+	dst_point[1].x=f2;
+	dst_point[1].y=f3;
+	dst_point[2].x=f4;
+	dst_point[2].y=f5;
+	dst_point[3].x=f6;
+	dst_point[3].y=f7;
+	
+	
+	cvGetPerspectiveTransform( src_point, dst_point , x->map_matrix );
+
+	//~ printf("mapMatrix :\n");
+	//~ printf("%.2f\t%.2f\t%.2f\n", CV_MAT_ELEM(*(x->map_matrix),float,0,0), CV_MAT_ELEM(*(x->map_matrix),float,1,0), CV_MAT_ELEM(*(x->map_matrix),float,2,0));
+	//~ printf("%.2f\t%.2f\t%.2f\n", CV_MAT_ELEM(*(x->map_matrix),float,0,1), CV_MAT_ELEM(*(x->map_matrix),float,1,1), CV_MAT_ELEM(*(x->map_matrix),float,2,1));
+	//~ printf("%.2f\t%.2f\t%.2f\n", CV_MAT_ELEM(*(x->map_matrix),float,0,2), CV_MAT_ELEM(*(x->map_matrix),float,1,2), CV_MAT_ELEM(*(x->map_matrix),float,2,2));
+	return;
+#else 
+	pd_error(x,"ildasend: you need to compile with OpenCV to use this method (%s)",s->s_name);
+	return;
+#endif
+}
+
+void ildareceive_unbind( t_ildareceive *x ){
+    lo_server_thread_free(x->OSC_server);
+    x->OSC_server=NULL;
+    outlet_float(x->m_dataout, 0);
+}
+
+void ildareceive_settab ( t_ildareceive *x, t_symbol* s, unsigned int ac, t_atom* av )
 {
     if (ac%2 != 0 ) {
-		error("wong arg number, usage : settab <x|y|r|g|b> <table name>");
+		pd_error(x,"ildasend: wong arg number, usage : settab <x|y|r|g|b> <table name>");
 		return;
 	}
     int i=0;
 	for(i=0;i<ac;i++){
         if ( av[i].a_type != A_SYMBOL){
-            error("wrong arg type, settab args must be symbol");
+            pd_error(x,"ildasend: wrong arg type, settab args must be symbol");
             return;
         }
 	}
     
     for(i=0;i<ac/2;i++){
-        t_garray *tmp_array;
-        tmp_array = NULL;
-        tmp_array = (t_garray *)pd_findbyclass(av[2*i+1].a_w.w_symbol, garray_class);
-        if (tmp_array){
-            int index=0;
-            if ( strcmp( av[2*i].a_w.w_symbol->s_name, "x") == 0){
-                index=ILDA_CH_X;
-            } else if ( strcmp( av[2*i].a_w.w_symbol->s_name, "y") == 0){
-                index=ILDA_CH_Y;
-            } else if ( strcmp( av[2*i].a_w.w_symbol->s_name, "r") == 0){
-                index=ILDA_CH_R;
-            } else if ( strcmp( av[2*i].a_w.w_symbol->s_name, "g") == 0){
-                index=ILDA_CH_G;
-            } else if ( strcmp( av[2*i].a_w.w_symbol->s_name, "b") == 0){
-                index=ILDA_CH_B;
-            }
-            
-            x->channel[index].array=tmp_array;
+        int index=-1;
+               if ( strcmp( av[2*i].a_w.w_symbol->s_name, "x") == 0){
+            index=ILDA_CH_X;
+        } else if ( strcmp( av[2*i].a_w.w_symbol->s_name, "y") == 0){
+            index=ILDA_CH_Y;
+        } else if ( strcmp( av[2*i].a_w.w_symbol->s_name, "r") == 0){
+            index=ILDA_CH_R;
+        } else if ( strcmp( av[2*i].a_w.w_symbol->s_name, "g") == 0){
+            index=ILDA_CH_G;
+        } else if ( strcmp( av[2*i].a_w.w_symbol->s_name, "b") == 0){
+            index=ILDA_CH_B;
+        }
+        
+        if ( index >= 0 ) {
             x->channel[index].arrayname=av[2*i+1].a_w.w_symbol;
         } else {
-            error("%s: no such array", av[2*i+1].a_w.w_symbol->s_name);           
+            pd_error(x, "ildareceive: hey dude ! %s is not a valid chanel name !", av[2*i+1].a_w.w_symbol);
         }
     } 
 }
@@ -357,16 +503,22 @@ void *ildareceive_new(void)
         x->channel[i].arrayname=NULL;
     }
     
-    post("sizeof t_float %d, sizeof t_word %d", sizeof(t_float), sizeof(t_word));
+    x->perspective_correction=0;
+
+#ifdef HAVE_OPENCV
+	x->map_matrix=cvCreateMat(3,3,CV_32FC1);
+	cvSetIdentity(x->map_matrix,cvRealScalar(1));
+#endif
     
     return (void *)x;
 }
 
-static void ildareceive_free(t_ildareceive *x)
+void ildareceive_free(t_ildareceive *x)
 {
-    if (x->OSC_server){
-        lo_server_thread_stop(x->OSC_server);
-    }
+    if (x->OSC_server) lo_server_thread_stop(x->OSC_server);
+#ifdef HAVE_OPENCV
+	if (x->map_matrix) cvReleaseMat(&x->map_matrix);
+#endif
 }
 
     /* this is called once at setup time, when this code is loaded into Pd. */
@@ -376,6 +528,7 @@ void ildareceive_setup(void)
     	sizeof(t_ildareceive), 0, 0);
     class_addmethod(ildareceive_class, (t_method) ildareceive_settab, gensym("settab"), A_GIMME, 0);
     class_addmethod(ildareceive_class, (t_method) ildareceive_bind, gensym("bind"), A_FLOAT, 0);
+    class_addmethod(ildareceive_class, (t_method) ildareceive_unbind, gensym("unbind"), 0);
 }
 
 
