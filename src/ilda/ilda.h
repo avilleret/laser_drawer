@@ -1,5 +1,6 @@
 #include <limits.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "lo/lo.h"
 #ifdef _WIN32
@@ -11,7 +12,7 @@
 #define PT_COORD_MAX 32767.5
 #define ILDA_CH_X 0
 #define ILDA_CH_Y 1
-//~ #define ILDA_CH_Z 1
+//~ #define ILDA_CH_Z 2
 #define ILDA_CH_R 2
 #define ILDA_CH_G 3
 #define ILDA_CH_B 4
@@ -25,11 +26,11 @@ typedef int int4byte;
 
 typedef struct ilda_settings
 {
-    float scale[3], offset[3], invert[3]; //~ scale, offset and invert for X,Y and intensity
-    float intensity[3]; //~ global intensity value
-    int mode; //~ 0:analog color, 1:digital color, 2:analog green, 3:digital green
-    int blanking_off;
-    float angle_correction, end_line_correction, scan_freq;
+    t_float scale[3], offset[3], invert[3]; //~ scale, offset and invert for X,Y and intensity
+    t_float intensity[3]; //~ global intensity value for rgb
+    t_int mode; //~ 0:analog color, 1:digital color, 2:analog green, 3:digital green
+    t_int blanking_off;
+    t_float angle_correction, end_line_correction, scan_freq;
     
 } t_ilda_settings;
 
@@ -44,7 +45,7 @@ typedef struct ilda_channel
 
 typedef struct t_ilda_frame
 {
-    int format;
+    t_int format;
     t_symbol *frame_name;
     t_symbol *compagny_name;
     unsigned int point_number;

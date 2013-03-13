@@ -35,10 +35,10 @@ UNITTESTS =
 #
 #------------------------------------------------------------------------------#
 
-ALL_CFLAGS = -I"$(PD_INCLUDE)"
+ALL_CFLAGS = -I"$(PD_INCLUDE)" `pkg-config --cflags opencv` `if [ \`pkg-config --modversion opencv\` ]; then echo -DHAVE_OPENCV; fi`
 ALL_LDFLAGS =  
 SHARED_LDFLAGS =
-ALL_LIBS = -l lo
+ALL_LIBS = `pkg-config --libs liblo` `pkg-config --libs opencv`
 
 
 #------------------------------------------------------------------------------#
