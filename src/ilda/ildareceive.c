@@ -426,30 +426,38 @@ void ildareceive_bind ( t_ildareceive *x, t_float port)
     sprintf(portstr, "%d", (int) port);
     x->OSC_server = lo_server_thread_new(portstr, ildareceive_error);
     
-    lo_server_thread_add_method(x->OSC_server, "/arrays", NULL, ildareceive_generic_handler, x);
-    lo_server_thread_add_method(x->OSC_server, "/setting/offset", "fff", ildareceive_offset, x);
-    lo_server_thread_add_method(x->OSC_server, "/setting/scale", "fff", ildareceive_scale, x);
-    lo_server_thread_add_method(x->OSC_server, "/setting/invert", "fff", ildareceive_invert, x);
-    lo_server_thread_add_method(x->OSC_server, "/setting/intensity", "fff", ildareceive_intensity, x);
-    lo_server_thread_add_method(x->OSC_server, "/setting/blanking_off", "f", ildareceive_blanking_off, x);
-    lo_server_thread_add_method(x->OSC_server, "/setting/angle_correction", "f", ildareceive_angle_correction, x);
-    lo_server_thread_add_method(x->OSC_server, "/setting/end_line_correction", "f", ildareceive_end_line_correction, x);
-    lo_server_thread_add_method(x->OSC_server, "/setting/scan_freq", "f", ildareceive_scan_freq, x);
-    lo_server_thread_add_method(x->OSC_server, "/setting/perspective_correction", "f", ildareceive_enable_perspective_correction, x);
-    lo_server_thread_add_method(x->OSC_server, "/setting/dst_point", "ffffffff", ildareceive_dst_point, x);
-    
-    if ( lo_server_thread_start(x->OSC_server) < 0 ){
-        pd_error(x,"ildasend: ildareceive : can't start server");
-        outlet_float(x->m_dataout, 0);
-    } else {
-        outlet_float(x->m_dataout, 1);
+    if ( x->OSC_server){
+        lo_server_thread_add_method(x->OSC_server, "/arrays", NULL, ildareceive_generic_handler, x);
+        lo_server_thread_add_method(x->OSC_server, "/setting/offset", "fff", ildareceive_offset, x);
+        lo_server_thread_add_method(x->OSC_server, "/setting/scale", "fff", ildareceive_scale, x);
+        lo_server_thread_add_method(x->OSC_server, "/setting/invert", "fff", ildareceive_invert, x);
+        lo_server_thread_add_method(x->OSC_server, "/setting/intensity", "fff", ildareceive_intensity, x);
+        lo_server_thread_add_method(x->OSC_server, "/setting/blanking_off", "f", ildareceive_blanking_off, x);
+        lo_server_thread_add_method(x->OSC_server, "/setting/angle_correction", "f", ildareceive_angle_correction, x);
+        lo_server_thread_add_method(x->OSC_server, "/setting/end_line_correction", "f", ildareceive_end_line_correction, x);
+        lo_server_thread_add_method(x->OSC_server, "/setting/scan_freq", "f", ildareceive_scan_freq, x);
+        lo_server_thread_add_method(x->OSC_server, "/setting/perspective_correction", "f", ildareceive_enable_perspective_correction, x);
+        lo_server_thread_add_method(x->OSC_server, "/setting/dst_point", "ffffffff", ildareceive_dst_point, x);
+        
+        if ( lo_server_thread_start(x->OSC_server) < 0 ){
+            pd_error(x,"ildasend: ildareceive : can't start server");
+            t_atom data;
+            SETFLOAT(&data,0);
+            outlet_anything(x->m_dataout, gensym("connected"), 1, &data);
+        } else {
+            t_atom data;
+            SETFLOAT(&data,1);
+            outlet_anything(x->m_dataout, gensym("connected"), 1, &data);
+        }
     }
 }
 
 void ildareceive_unbind( t_ildareceive *x ){
     lo_server_thread_free(x->OSC_server);
     x->OSC_server=NULL;
-    outlet_float(x->m_dataout, 0);
+    t_atom data;
+    SETFLOAT(&data,0);
+    outlet_anything(x->m_dataout, gensym("connected"), 1, &data);
 }
 
 void ildareceive_settab ( t_ildareceive *x, t_symbol* s, unsigned int ac, t_atom* av )
