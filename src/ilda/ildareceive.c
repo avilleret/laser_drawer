@@ -130,54 +130,66 @@ void decode_data(t_ildareceive *x, unsigned int ac, t_atom* av){
     av=NULL;
 }
 
-static void ildareceive_perspective_correction(t_ildareceive *x)
+static void ildareceive_perspective_correction(t_ildareceive *x, lo_arg **argv, int argc)
 {
-    if ( !x->perspective_correction ) return;
 #ifdef HAVE_OPENCV 
 	// using OpenCV for perspective correction
 	CvMat *src, *dst;
-    int size = x->channel[0].vecsize; //~ assume all channels have the same size
-	src=cvCreateMat(1, size, CV_32FC2 ); 
-	
-	float *pt;
-	pt=src->data.fl;
-	
-    //~ TODO : AV could this be improve with cases for 64-bit and for 32-bit system and a pointer instead of copying data ?
     int i,j;
+    lo_blob blob[2];
+    blob[0]=argv[0];
+    blob[1]=argv[1];
+    int size = lo_blob_datasize(blob[0])/sizeof(t_float); //~ assume all blobs have the same size
     
-    memcpy(pt, x->channel[0].vec, size*sizeof(float));
-    memcpy(pt+size*sizeof(float), x->channel[1].vec, size*sizeof(float));
-    
-    printf("sizeof(float) : %d,\ src.step : %d\n",sizeof(float),src->step);
-    i=0;j=0;
-    printf("(%d, %d) %d : %.3f\n",i,j,i*src->step/2+j,pt[i*src->step/2+j]);
-    i=0;j=1;
-    printf("(%d, %d) %d : %.3f\n",i,j,i*src->step/2+j,pt[i*src->step/2+j]);
-    i=1;j=0;
-    printf("(%d, %d) %d : %.3f\n",i,j,i*src->step/2+j,pt[i*src->step/2+j]);
-    i=1;j=1;
-    printf("(%d, %d) %d : %.3f\n",i,j,i*src->step/2+j,pt[i*src->step/2+j]);
+    //~ resize arrays
+    for ( i=0;i<2;i++) {
+        if ( !x->channel[i].arrayname ){
+            pd_error(x,"ildareceive: don't be so impatient, settab first...");
+            return 0;
+        }
+        
+        x->channel[i].array=(t_garray *)pd_findbyclass(x->channel[i].arrayname, garray_class);
+        if ( !x->channel[i].array){
+            pd_error(x,"ildareceive: hoops ! where is array %s ??",x->channel[i].arrayname);
+            return 0;
+        }
+        
+        garray_resize_long(x->channel[i].array,size);
+        if (!garray_getfloatwords(x->channel[i].array, &(x->channel[i].vecsize), &(x->channel[i].vec))){
+            pd_error(x,"ildasend: %s: can't resize correctly", x->channel[i].arrayname->s_name);
+            return 0;
+        }
+    }
 
+	src=cvCreateMat(size, 1, CV_32FC2 ); 
+	dst=cvCreateMat(size, 1, CV_32FC2 ); 
+	
+	float *blobptx, *blobpty, *pt,*pt2;
+	pt=src->data.fl;
+    blobptx=lo_blob_dataptr(blob[0]);
+    blobpty=lo_blob_dataptr(blob[1]);
+	 
+    for ( i=0 ; i<size ; i++ ) {
+		*(pt++)=*(blobptx++); // Replacement for CV_MAT_ELEM broken since 2.3.1
+		*(pt++)=*(blobpty++); // Replacement for CV_MAT_ELEM broken since 2.3.1
+        //~ printf("%d\t%.3f,%.3f\n", i, x->channel[0].vec[i].w_float, x->channel[1].vec[i].w_float);
+	}
+    
     dst=cvCreateMat(size, 1, CV_32FC2 );
     cvPerspectiveTransform(src, dst, x->map_matrix);
 
-	pt=dst->data.fl;
+    //~ printf("id\tsrc\t\tdst\n"); pt=src->data.fl;
+	pt2=dst->data.fl;
+    for ( i=0;i<size;i++ ){
+        x->channel[0].vec[i].w_float=*pt2;
+        x->channel[1].vec[i].w_float=*(pt2+1);
+        //~ x->channel[1].vec[i].w_float=(i/10)%2;
+		//~ printf("%d\t(%.3f,%.3f)\t(%.3f,%.3f)\n",i,*pt,*(pt+1),*pt2,*(pt2+1)); pt+=2;
+        pt2+=2;
+	}
 
-    i=0;j=0;
-    printf("(%d, %d) %d : %.3f\n",i,j,i*src->step/2+j,pt[i*src->step/2+j]);
-    i=0;j=1;
-    printf("(%d, %d) %d : %.3f\n",i,j,i*src->step/2+j,pt[i*src->step/2+j]);
-    i=1;j=0;
-    printf("(%d, %d) %d : %.3f\n",i,j,i*src->step/2+j,pt[i*src->step/2+j]);
-    i=1;j=1;
-    printf("(%d, %d) %d : %.3f\n",i,j,i*src->step/2+j,pt[i*src->step/2+j]);
-	
-    //~ update table
-    for ( i=0 ; i<size ; i++ ) {
-        x->channel[0].vec[i].w_float=CV_MAT_ELEM(*src, float, 0, i);
-        //~ x->channel[1].vec[i].w_float=CV_MAT_ELEM(*src, float, i, 1);
-    }
-    
+    garray_redraw(x->channel[0].array);
+    garray_redraw(x->channel[1].array);
     //~ Release Matrix data
 	if (dst!=src) { 
 		cvReleaseMat(&dst);
@@ -315,11 +327,20 @@ int ildareceive_enable_perspective_correction(const char *path, const char *type
 int ildareceive_generic_handler(const char *path, const char *types, lo_arg **argv,
 		    int argc, void *data, t_ildareceive *x)
 {
-    int i, rtn=1;
+    int i=2, rtn=1;
     
     //~ printf("path: %s\n", path);
+    if ( argc < 2 ){
+        pd_error(x, "ildareceive: ouch ! not enough blob in OSC message !");
+    }
     
-    for (i=0; i<argc; i++) {
+    if ( x->perspective_correction ){
+        ildareceive_perspective_correction(x, argv, argc);
+    } else {
+        i=0;
+    }
+    
+    for (; i<argc; i++) {
         if (types[i]=='b'){
             lo_blob b = argv[i];
             size_t size = lo_blob_datasize(b)/sizeof(t_float);
@@ -355,8 +376,6 @@ int ildareceive_generic_handler(const char *path, const char *types, lo_arg **ar
         }
     }
     
-    ildareceive_perspective_correction(x);
-
     return 0;
 }
 
@@ -377,21 +396,18 @@ void ildareceive_dst_point(const char *path, const char *types, lo_arg **argv,
 	src_point[3].y=-1.;
     
 	int i;
-    printf("points :\n");
     for (i=0;i<4;i++){
         dst_point[i].x=argv[2*i]->f;
-        printf("%f",dst_point[i].x);
         dst_point[i].y=argv[2*i+1]->f;
-        printf("\t%f\n",dst_point[i].y);
     }
 	
 	
 	cvGetPerspectiveTransform( src_point, dst_point , x->map_matrix );
 
-	printf("mapMatrix :\n");
-	printf("%.2f\t%.2f\t%.2f\n", CV_MAT_ELEM(*(x->map_matrix),float,0,0), CV_MAT_ELEM(*(x->map_matrix),float,1,0), CV_MAT_ELEM(*(x->map_matrix),float,2,0));
-	printf("%.2f\t%.2f\t%.2f\n", CV_MAT_ELEM(*(x->map_matrix),float,0,1), CV_MAT_ELEM(*(x->map_matrix),float,1,1), CV_MAT_ELEM(*(x->map_matrix),float,2,1));
-	printf("%.2f\t%.2f\t%.2f\n", CV_MAT_ELEM(*(x->map_matrix),float,0,2), CV_MAT_ELEM(*(x->map_matrix),float,1,2), CV_MAT_ELEM(*(x->map_matrix),float,2,2));
+	//~ printf("mapMatrix :\n");
+	//~ printf("%.2f\t%.2f\t%.2f\n", CV_MAT_ELEM(*(x->map_matrix),float,0,0), CV_MAT_ELEM(*(x->map_matrix),float,1,0), CV_MAT_ELEM(*(x->map_matrix),float,2,0));
+	//~ printf("%.2f\t%.2f\t%.2f\n", CV_MAT_ELEM(*(x->map_matrix),float,0,1), CV_MAT_ELEM(*(x->map_matrix),float,1,1), CV_MAT_ELEM(*(x->map_matrix),float,2,1));
+	//~ printf("%.2f\t%.2f\t%.2f\n", CV_MAT_ELEM(*(x->map_matrix),float,0,2), CV_MAT_ELEM(*(x->map_matrix),float,1,2), CV_MAT_ELEM(*(x->map_matrix),float,2,2));
 	return;
 #else 
 	pd_error(x,"ildasend: you need to compile with OpenCV to use this method (%s)",s->s_name);
@@ -512,6 +528,10 @@ void *ildareceive_new(void)
 #ifdef HAVE_OPENCV
 	x->map_matrix=cvCreateMat(3,3,CV_32FC1);
 	cvSetIdentity(x->map_matrix,cvRealScalar(1));
+    printf("mapMatrix :\n");
+	printf("%.2f\t%.2f\t%.2f\n", CV_MAT_ELEM(*(x->map_matrix),float,0,0), CV_MAT_ELEM(*(x->map_matrix),float,1,0), CV_MAT_ELEM(*(x->map_matrix),float,2,0));
+	printf("%.2f\t%.2f\t%.2f\n", CV_MAT_ELEM(*(x->map_matrix),float,0,1), CV_MAT_ELEM(*(x->map_matrix),float,1,1), CV_MAT_ELEM(*(x->map_matrix),float,2,1));
+	printf("%.2f\t%.2f\t%.2f\n", CV_MAT_ELEM(*(x->map_matrix),float,0,2), CV_MAT_ELEM(*(x->map_matrix),float,1,2), CV_MAT_ELEM(*(x->map_matrix),float,2,2));
 #endif
     
     return (void *)x;
