@@ -23,113 +23,6 @@ typedef struct ildareceive
 
 t_class *ildareceive_class;
 
-void decode_data(t_ildareceive *x, unsigned int ac, t_atom* av){
-    if ( !x->channel[0].array || !x->channel[1].array || !x->channel[2].array || !x->channel[3].array || !x->channel[4].array ){
-        pd_error(x,"ildasend: you should specify x, y, r, g and b before");
-        return;
-    }
-    
-    int i=ILDA_HEADER_SIZE,line_strip,j; // first number of points
-    line_strip=(((char) av[i].a_w.w_float & 0xFF) << 8 ) | ((char) av[i+1].a_w.w_float & 0xFF); //~ number of line strips
-    
-    int pt_count = 0, tmp;
-    i+=5; //~ first line strip
-    
-    for ( j=0 ; j < line_strip && i < (ac-2) ; j++ ){
-        tmp=(int) (((char) av[i].a_w.w_float & 0xFF) << 8 ) | ((char) av[i+1].a_w.w_float & 0xFF);
-        //~ printf("strip %d/%d with %d point\n", j, line_strip, tmp);
-        pt_count+=tmp;
-        i+=tmp*4+5;
-    }
-    
-    int size=pt_count;
-    //~ printf("total number of point : %d\n", size);
-    
-    //~ resize tables
-    for ( i=0; i<5; i++ ){
-        if (!garray_getfloatwords(x->channel[i].array, &(x->channel[i].vecsize), &(x->channel[i].vec))){
-            pd_error(x,"ildasend: %s: bad template", x->channel[i].arrayname->s_name);
-            return;
-        } else if ( x->channel[i].vecsize != size ){
-            garray_resize_long(x->channel[i].array,size);
-            if (!garray_getfloatwords(x->channel[i].array, &(x->channel[i].vecsize), &(x->channel[i].vec))){
-                pd_error(x,"ildasend: %s: can't resize correctly", x->channel[i].arrayname->s_name);
-                return;
-            } 
-        }
-    }
-    
-    i = ILDA_HEADER_SIZE + 2; // first line strip
-    float r,g,b;
-    j=0;
-    int strip;
-    for ( strip=0 ; strip < line_strip ; strip++ ){
-        //~ printf("line strip %d/%d\n", strip, line_strip);
-        if ( x->settings.invert[2] ){
-            r=1.-av[i].a_w.w_float / 255;
-            g=1.-av[i+1].a_w.w_float / 255;
-            b=1.-av[i+2].a_w.w_float / 255;
-        } else {
-            r=av[i].a_w.w_float / 255;
-            g=av[i+1].a_w.w_float / 255;
-            b=av[i+2].a_w.w_float / 255;
-        }
-        i+=3;
-        
-        pt_count = (int) (((char) av[i].a_w.w_float & 0xFF) << 8 ) | ((char) av[i+1].a_w.w_float & 0xFF);
-        //~ printf("strip with %d points\n",pt_count); 
-        i+=2;
-        
-        int k;
-        for ( k = 0 ; k < pt_count && j < size && i < av-4 ; k++){  
-            //~ i:index in the input frame, j:index in the table, k:index in the point table (subtable of input frame)
-            float tmpx = (float) ((((char) av[i].a_w.w_float & 0xFF) << 8 ) | ((char) av[i+1].a_w.w_float & 0xFF))/PT_COORD_MAX - 1.;
-            i+=2;
-            float tmpy = (float) ((((char) av[i].a_w.w_float & 0xFF) << 8 ) | ((char) av[i+1].a_w.w_float & 0xFF))/PT_COORD_MAX - 1.;
-            i+=2;
-            
-            if ( x->settings.invert[0] ){
-                x->channel[ILDA_CH_X].vec[j].w_float= (1-tmpx) * x->settings.scale[1] + x->settings.offset[0];
-            } else {
-                x->channel[ILDA_CH_X].vec[j].w_float= tmpx * x->settings.scale[1] + x->settings.offset[0];
-            }
-            
-            if ( x->settings.invert[1] ){
-                x->channel[ILDA_CH_Y].vec[j].w_float= (1-tmpy) * x->settings.scale[0] + x->settings.offset[1];
-            } else {
-                x->channel[ILDA_CH_Y].vec[j].w_float= tmpy * x->settings.scale[0] + x->settings.offset[1];
-            }
-            
-            if ( x->settings.blanking_off ) {
-                x->channel[ILDA_CH_R].vec[j].w_float=1.;
-                x->channel[ILDA_CH_G].vec[j].w_float=1.;
-                x->channel[ILDA_CH_B].vec[j].w_float=1.;
-            } else {
-                x->channel[ILDA_CH_R].vec[j].w_float=r;
-                x->channel[ILDA_CH_G].vec[j].w_float=g;
-                x->channel[ILDA_CH_B].vec[j].w_float=b;
-            }
-            
-            if ( x->settings.invert[2] ){
-                x->channel[ILDA_CH_R].vec[j].w_float=1-x->channel[ILDA_CH_R].vec[j].w_float;
-                x->channel[ILDA_CH_G].vec[j].w_float=1-x->channel[ILDA_CH_G].vec[j].w_float;
-                x->channel[ILDA_CH_B].vec[j].w_float=1-x->channel[ILDA_CH_B].vec[j].w_float;
-            }
-            
-            //~ printf("%d\t%.5f\t%.5f\t%.5f\n", j, x->channel[ILDA_CH_X].vec[j].w_float, x->channel[ILDA_CH_Y].vec[j].w_float, x->channel[ILDA_CH_R].vec[j].w_float);
-            j++;
-        }
-    }
-    for ( i=0;i<5;i++) {
-        garray_redraw(x->channel[i].array);
-    }
-
-    
-    x=NULL;
-    ac=0;
-    av=NULL;
-}
-
 static void ildareceive_perspective_correction(t_ildareceive *x, lo_arg **argv, int argc)
 {
 #ifdef HAVE_OPENCV 
@@ -188,8 +81,8 @@ static void ildareceive_perspective_correction(t_ildareceive *x, lo_arg **argv, 
         pt2+=2;
 	}
 
-    garray_redraw(x->channel[0].array);
-    garray_redraw(x->channel[1].array);
+    //~ garray_redraw(x->channel[0].array);
+    //~ garray_redraw(x->channel[1].array);
     //~ Release Matrix data
 	if (dst!=src) { 
 		cvReleaseMat(&dst);
@@ -372,7 +265,7 @@ int ildareceive_generic_handler(const char *path, const char *types, lo_arg **ar
                     x->channel[i].vec[j].w_float=data[j];
                 }
             }
-            garray_redraw(x->channel[i].array);
+            //~ garray_redraw(x->channel[i].array);
         }
     }
     
@@ -410,7 +303,7 @@ void ildareceive_dst_point(const char *path, const char *types, lo_arg **argv,
 	//~ printf("%.2f\t%.2f\t%.2f\n", CV_MAT_ELEM(*(x->map_matrix),float,0,2), CV_MAT_ELEM(*(x->map_matrix),float,1,2), CV_MAT_ELEM(*(x->map_matrix),float,2,2));
 	return;
 #else 
-	pd_error(x,"ildasend: you need to compile with OpenCV to use this method (%s)",s->s_name);
+	pd_error(x,"ildasend: you need to compile with OpenCV to use this method (%s)", path);
 	return;
 #endif
 }
