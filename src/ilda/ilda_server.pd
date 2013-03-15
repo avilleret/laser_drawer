@@ -1,4 +1,4 @@
-#N canvas 78 621 1099 426 10;
+#N canvas 74 633 1099 426 10;
 #N canvas 345 182 494 344 META 0;
 #X text 12 125 HELP_PATCH_AUTHORS "pd meta" information added by Jonathan
 Wilkes for Pd version 0.42.;
@@ -212,10 +212,10 @@ Wilkes for Pd version 0.42.;
 #X obj 835 90 table drawG 10000;
 #X obj 835 110 table drawB 10000;
 #X obj 621 211 s framesize;
-#X obj 248 215 route offset scale invert intensity end_line_correction
-scan_freq framesize;
 #X floatatom 654 333 5 0 0 0 - - -;
 #X obj 91 223 print ildareceive;
+#X obj 248 215 route offset scale invert intensity end_line_correction
+scan_freq framesize blanking_off;
 #X connect 1 0 20 0;
 #X connect 2 0 21 0;
 #X connect 3 0 23 0;
@@ -229,7 +229,7 @@ scan_freq framesize;
 #X connect 12 0 25 0;
 #X connect 13 0 27 0;
 #X connect 14 0 26 0;
-#X connect 15 0 42 0;
+#X connect 15 0 44 0;
 #X connect 16 0 15 0;
 #X connect 17 0 15 0;
 #X connect 18 0 1 0;
@@ -242,11 +242,12 @@ scan_freq framesize;
 #X connect 31 0 5 0;
 #X connect 31 1 33 0;
 #X connect 31 2 34 0;
-#X connect 42 0 18 0;
-#X connect 42 1 29 0;
-#X connect 42 2 30 0;
-#X connect 42 3 31 0;
-#X connect 42 4 6 0;
-#X connect 42 5 7 0;
-#X connect 42 6 43 0;
-#X connect 42 6 41 0;
+#X connect 44 0 18 0;
+#X connect 44 1 29 0;
+#X connect 44 2 30 0;
+#X connect 44 3 31 0;
+#X connect 44 4 6 0;
+#X connect 44 5 7 0;
+#X connect 44 6 42 0;
+#X connect 44 6 41 0;
+#X connect 44 7 13 0;
