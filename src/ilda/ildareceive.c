@@ -28,7 +28,7 @@ static void ildareceive_perspective_correction(t_ildareceive *x, lo_arg **argv, 
 #ifdef HAVE_OPENCV 
 	// using OpenCV for perspective correction
 	CvMat *src, *dst;
-    int i,j;
+    int i;
     lo_blob blob[2];
     blob[0]=argv[0];
     blob[1]=argv[1];
@@ -38,19 +38,19 @@ static void ildareceive_perspective_correction(t_ildareceive *x, lo_arg **argv, 
     for ( i=0;i<2;i++) {
         if ( !x->channel[i].arrayname ){
             pd_error(x,"ildareceive: don't be so impatient, settab first...");
-            return 0;
+            return ;
         }
         
         x->channel[i].array=(t_garray *)pd_findbyclass(x->channel[i].arrayname, garray_class);
         if ( !x->channel[i].array){
-            pd_error(x,"ildareceive: hoops ! where is array %s ??",x->channel[i].arrayname);
-            return 0;
+            pd_error(x,"ildareceive: hoops ! where is array %s ??",x->channel[i].arrayname->s_name);
+            return ;
         }
         
         garray_resize_long(x->channel[i].array,size);
         if (!garray_getfloatwords(x->channel[i].array, &(x->channel[i].vecsize), &(x->channel[i].vec))){
             pd_error(x,"ildasend: %s: can't resize correctly", x->channel[i].arrayname->s_name);
-            return 0;
+            return ;
         }
     }
 
@@ -232,11 +232,12 @@ int ildareceive_generic_handler(const char *path, const char *types, lo_arg **ar
     } else {
         i=0;
     }
+    int size=0;
     
     for (; i<argc; i++) {
         if (types[i]=='b'){
             lo_blob b = argv[i];
-            size_t size = lo_blob_datasize(b)/sizeof(t_float);
+            size = lo_blob_datasize(b)/sizeof(t_float);
             
             if ( !x->channel[i].arrayname ){
                 pd_error(x,"ildareceive: don't be so impatient, settab first...");
@@ -245,30 +246,34 @@ int ildareceive_generic_handler(const char *path, const char *types, lo_arg **ar
             
             x->channel[i].array=(t_garray *)pd_findbyclass(x->channel[i].arrayname, garray_class);
             if ( !x->channel[i].array){
-                pd_error(x,"ildareceive: hoops ! where is array %s ??",x->channel[i].arrayname);
+                pd_error(x,"ildareceive: hoops ! where is array %s ??",x->channel[i].arrayname->s_name);
                 return 0;
             }
             
             garray_resize_long(x->channel[i].array,size);
             if (!garray_getfloatwords(x->channel[i].array, &(x->channel[i].vecsize), &(x->channel[i].vec))){
-                pd_error(x,"ildasend: %s: can't resize correctly", x->channel[i].arrayname->s_name);
+                pd_error(x,"ildasend: %s: can't access correctly", x->channel[i].arrayname->s_name);
                 return 0;
-            } 
+            }
+            
+            //~ size = x->channel[i].vecsize > size ? size : x->channel[i].vecsize;
             
             if ( sizeof(t_float) == sizeof(t_word) ) {
                 t_word *data = lo_blob_dataptr(b);
-                memcpy(x->channel[i].vec, data, lo_blob_datasize(b));
+                memcpy(x->channel[i].vec, data, size*sizeof(t_float));
             } else {
                 int j;
                 t_float *data = lo_blob_dataptr(b);
-                for ( j=0; j<lo_blob_datasize(b)/sizeof(t_float); j++ ){
+                for ( j=0; j<size; j++ ){
                     x->channel[i].vec[j].w_float=data[j];
                 }
             }
-            //~ garray_redraw(x->channel[i].array);
+            garray_redraw(x->channel[i].array);
         }
     }
-    
+    t_atom a_size;
+    SETFLOAT(&a_size, size);
+    outlet_anything(x->m_dataout, gensym("framesize"), 1, &a_size);
     return 0;
 }
 
@@ -311,7 +316,7 @@ void ildareceive_dst_point(const char *path, const char *types, lo_arg **argv,
 void ildareceive_bind ( t_ildareceive *x, t_float port)
 {
     if(x->OSC_server){
-        pd_error(x,"ildasend: receiveilda : already bounded to port %d", lo_server_thread_get_port(x->OSC_server));
+        pd_error(x,"ildasend: receiveilda : already bound to port %d", lo_server_thread_get_port(x->OSC_server));
         return;
     }
     
@@ -320,17 +325,17 @@ void ildareceive_bind ( t_ildareceive *x, t_float port)
     x->OSC_server = lo_server_thread_new(portstr, ildareceive_error);
     
     if ( x->OSC_server){
-        lo_server_thread_add_method(x->OSC_server, "/arrays", NULL, ildareceive_generic_handler, x);
-        lo_server_thread_add_method(x->OSC_server, "/setting/offset", "fff", ildareceive_offset, x);
-        lo_server_thread_add_method(x->OSC_server, "/setting/scale", "fff", ildareceive_scale, x);
-        lo_server_thread_add_method(x->OSC_server, "/setting/invert", "fff", ildareceive_invert, x);
-        lo_server_thread_add_method(x->OSC_server, "/setting/intensity", "fff", ildareceive_intensity, x);
-        lo_server_thread_add_method(x->OSC_server, "/setting/blanking_off", "f", ildareceive_blanking_off, x);
-        lo_server_thread_add_method(x->OSC_server, "/setting/angle_correction", "f", ildareceive_angle_correction, x);
-        lo_server_thread_add_method(x->OSC_server, "/setting/end_line_correction", "f", ildareceive_end_line_correction, x);
-        lo_server_thread_add_method(x->OSC_server, "/setting/scan_freq", "f", ildareceive_scan_freq, x);
-        lo_server_thread_add_method(x->OSC_server, "/setting/perspective_correction", "f", ildareceive_enable_perspective_correction, x);
-        lo_server_thread_add_method(x->OSC_server, "/setting/dst_point", "ffffffff", ildareceive_dst_point, x);
+        lo_server_thread_add_method(x->OSC_server, "/arrays", NULL, (lo_method_handler) ildareceive_generic_handler, x);
+        lo_server_thread_add_method(x->OSC_server, "/setting/offset", "fff", (lo_method_handler) ildareceive_offset, x);
+        lo_server_thread_add_method(x->OSC_server, "/setting/scale", "fff", (lo_method_handler) ildareceive_scale, x);
+        lo_server_thread_add_method(x->OSC_server, "/setting/invert", "fff", (lo_method_handler) ildareceive_invert, x);
+        lo_server_thread_add_method(x->OSC_server, "/setting/intensity", "fff", (lo_method_handler) ildareceive_intensity, x);
+        lo_server_thread_add_method(x->OSC_server, "/setting/blanking_off", "f", (lo_method_handler) ildareceive_blanking_off, x);
+        lo_server_thread_add_method(x->OSC_server, "/setting/angle_correction", "f", (lo_method_handler) ildareceive_angle_correction, x);
+        lo_server_thread_add_method(x->OSC_server, "/setting/end_line_correction", "f", (lo_method_handler) ildareceive_end_line_correction, x);
+        lo_server_thread_add_method(x->OSC_server, "/setting/scan_freq", "f", (lo_method_handler) ildareceive_scan_freq, x);
+        lo_server_thread_add_method(x->OSC_server, "/setting/perspective_correction", "f", (lo_method_handler) ildareceive_enable_perspective_correction, x);
+        lo_server_thread_add_method(x->OSC_server, "/setting/dst_point", "ffffffff", (lo_method_handler) ildareceive_dst_point, x);
         
         if ( lo_server_thread_start(x->OSC_server) < 0 ){
             pd_error(x,"ildasend: ildareceive : can't start server");
@@ -346,8 +351,10 @@ void ildareceive_bind ( t_ildareceive *x, t_float port)
 }
 
 void ildareceive_unbind( t_ildareceive *x ){
-    lo_server_thread_free(x->OSC_server);
-    x->OSC_server=NULL;
+    if ( x->OSC_server ){
+        lo_server_thread_free(x->OSC_server);
+        x->OSC_server=NULL;
+    }
     t_atom data;
     SETFLOAT(&data,0);
     outlet_anything(x->m_dataout, gensym("connected"), 1, &data);
@@ -359,7 +366,7 @@ void ildareceive_settab ( t_ildareceive *x, t_symbol* s, unsigned int ac, t_atom
 		pd_error(x,"ildasend: wong arg number, usage : settab <x|y|r|g|b> <table name>");
 		return;
 	}
-    int i=0;
+    unsigned int i=0;
 	for(i=0;i<ac;i++){
         if ( av[i].a_type != A_SYMBOL){
             pd_error(x,"ildasend: wrong arg type, settab args must be symbol");
@@ -384,7 +391,7 @@ void ildareceive_settab ( t_ildareceive *x, t_symbol* s, unsigned int ac, t_atom
         if ( index >= 0 ) {
             x->channel[index].arrayname=av[2*i+1].a_w.w_symbol;
         } else {
-            pd_error(x, "ildareceive: hey dude ! %s is not a valid chanel name !", av[2*i+1].a_w.w_symbol);
+            pd_error(x, "ildareceive: hey dude ! %s is not a valid chanel name !", av[2*i+1].a_w.w_symbol->s_name);
         }
     } 
 }
@@ -392,7 +399,7 @@ void ildareceive_settab ( t_ildareceive *x, t_symbol* s, unsigned int ac, t_atom
 void *ildareceive_new(void)
 {
     t_ildareceive *x = (t_ildareceive *)pd_new(ildareceive_class);
-    x->m_dataout = outlet_new((struct t_object *)x,0);
+    x->m_dataout = outlet_new((t_object *)x,0);
     
     x->OSC_server = NULL;
     
@@ -429,10 +436,10 @@ void *ildareceive_new(void)
 #ifdef HAVE_OPENCV
 	x->map_matrix=cvCreateMat(3,3,CV_32FC1);
 	cvSetIdentity(x->map_matrix,cvRealScalar(1));
-    printf("mapMatrix :\n");
-	printf("%.2f\t%.2f\t%.2f\n", CV_MAT_ELEM(*(x->map_matrix),float,0,0), CV_MAT_ELEM(*(x->map_matrix),float,1,0), CV_MAT_ELEM(*(x->map_matrix),float,2,0));
-	printf("%.2f\t%.2f\t%.2f\n", CV_MAT_ELEM(*(x->map_matrix),float,0,1), CV_MAT_ELEM(*(x->map_matrix),float,1,1), CV_MAT_ELEM(*(x->map_matrix),float,2,1));
-	printf("%.2f\t%.2f\t%.2f\n", CV_MAT_ELEM(*(x->map_matrix),float,0,2), CV_MAT_ELEM(*(x->map_matrix),float,1,2), CV_MAT_ELEM(*(x->map_matrix),float,2,2));
+    //~ printf("mapMatrix :\n");
+	//~ printf("%.2f\t%.2f\t%.2f\n", CV_MAT_ELEM(*(x->map_matrix),float,0,0), CV_MAT_ELEM(*(x->map_matrix),float,1,0), CV_MAT_ELEM(*(x->map_matrix),float,2,0));
+	//~ printf("%.2f\t%.2f\t%.2f\n", CV_MAT_ELEM(*(x->map_matrix),float,0,1), CV_MAT_ELEM(*(x->map_matrix),float,1,1), CV_MAT_ELEM(*(x->map_matrix),float,2,1));
+	//~ printf("%.2f\t%.2f\t%.2f\n", CV_MAT_ELEM(*(x->map_matrix),float,0,2), CV_MAT_ELEM(*(x->map_matrix),float,1,2), CV_MAT_ELEM(*(x->map_matrix),float,2,2));
 #endif
     
     return (void *)x;
@@ -440,7 +447,11 @@ void *ildareceive_new(void)
 
 void ildareceive_free(t_ildareceive *x)
 {
-    if (x->OSC_server) lo_server_thread_stop(x->OSC_server);
+    if (x->OSC_server) {
+        lo_server_thread_stop(x->OSC_server);
+        lo_server_thread_free(x->OSC_server);
+        x->OSC_server=NULL;
+    }
 #ifdef HAVE_OPENCV
 	if (x->map_matrix) cvReleaseMat(&x->map_matrix);
 #endif
@@ -449,7 +460,7 @@ void ildareceive_free(t_ildareceive *x)
     /* this is called once at setup time, when this code is loaded into Pd. */
 void ildareceive_setup(void)
 {
-    ildareceive_class = class_new(gensym("ildareceive"), (t_newmethod)ildareceive_new, (t_newmethod)ildareceive_free,
+    ildareceive_class = class_new(gensym("ildareceive"), (t_newmethod)ildareceive_new, (t_method)ildareceive_free,
     	sizeof(t_ildareceive), 0, 0);
     class_addmethod(ildareceive_class, (t_method) ildareceive_settab, gensym("settab"), A_GIMME, 0);
     class_addmethod(ildareceive_class, (t_method) ildareceive_bind, gensym("bind"), A_FLOAT, 0);
