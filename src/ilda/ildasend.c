@@ -18,7 +18,6 @@ typedef struct ildasend
 {
   t_object x_ob;
   t_outlet *m_dataout;
-  t_garray *xarray, *yarray, *colorarray;
   char *raw_data;
   short *short_data[3];
   t_ilda_channel channel[5];
@@ -31,11 +30,26 @@ typedef struct ildasend
 
 } t_ildasend;
 
+//~  prototypes :
+void ildasend_disconnect(t_ildasend *x);
+
+void ildasend_check_senderror(t_ildasend *x){
+    t_atom data[2];
+    SETFLOAT(&data[0],lo_address_errno(x->OSC_destination));
+    SETSYMBOL(&data[1], gensym(lo_address_errstr(x->OSC_destination)));
+    outlet_anything(x->m_dataout, gensym("error"), 2, data);
+    
+    if ( lo_address_errno(x->OSC_destination) != 0 ){
+        pd_error(x, "ildasend: send error %d : %s",lo_address_errno(x->OSC_destination), lo_address_errstr(x->OSC_destination));
+    }
+}
+
     /* this is called back when ildasend gets a "bang" message */
 void ildasend_bang(t_ildasend *x)
 {
     if( !x->OSC_destination ){
         pd_error(x,"ildasend: not connected");
+        ildasend_disconnect(x);
         return;
     }
     
@@ -81,6 +95,7 @@ void ildasend_bang(t_ildasend *x)
     }
     
     lo_send(x->OSC_destination, "/arrays", "bbbbb", blob[0], blob[1], blob[2], blob[3], blob[4]);
+    ildasend_check_senderror(x);
 
     for (i=0;i<5;i++){
         if (blob[i]) {
@@ -88,84 +103,6 @@ void ildasend_bang(t_ildasend *x)
             blob[i]=NULL;
         }
     }
-}
-
-    /* this is called back when ildasend gets a "float" message (i.e., a
-    number.) */
-
-void ildasend_float(t_ildasend *x, t_float a)
-{
-    t_word *vec[3];
-    unsigned int nb_point, tab_size, i;
-    int size[3];
-    x->list_length=0;
-    
-	if( !x->xarray || !x->yarray || !x->colorarray ){
-		pd_error(x,"ildasend: settab first");
-		return;
-	}
-	
-	// copy data from table to vec array
-    if (!garray_getfloatwords(x->xarray, &(size[0]), &(vec[0]))) error("error when getting data from array...");
-    if (!garray_getfloatwords(x->yarray, &(size[1]), &(vec[1]))) error("error when getting data from array...");
-    if (!garray_getfloatwords(x->colorarray, &(size[2]), &(vec[2]))) error("error when getting data from array...");
-
-    tab_size=MINI(MINI(size[0],size[1]),size[2]);
-    if (tab_size>x->buffer_size){
-		error("buffer overflow, data truncated...");
-		tab_size=x->buffer_size;
-	}
-    a=MAXI(10,a);
-	nb_point=MINI(a,tab_size);
-
-	
-	t_atom *ap, *bp;
-	ap = &x->trame[3]; // position dans la trame
-
-	unsigned int nb_segment=0;
-
-	for ( i=0 ; i<nb_point ; ){
-		
-		short cur_color = CLIP(x->short_data[2][i],0,255);
-		int seg_pt_nb=0; // compteur du nombre de points du segment
-		
-		ap++->a_w.w_float = (float) cur_color; // red
-		ap++->a_w.w_float = (float) cur_color; // green
-		ap++->a_w.w_float = (float) cur_color; // blue
-		x->list_length+=3;
-		cur_color = x->short_data[2][i]; // non-clipped value for comparaison above
-		bp=ap+2;
-		
-		for ( ; ; ){ // infinite loop ?
-			bp++->a_w.w_float= (float) ((x->short_data[0][i] & 0xff00) >> 8); // MSB du x du point
-			bp++->a_w.w_float= (float) (x->short_data[0][i] & 0xff); // LSB du x du point
-			bp++->a_w.w_float= (float) ((x->short_data[1][i] & 0xff00) >> 8); // MSB du y du point
-			bp++->a_w.w_float= (float) (x->short_data[1][i] & 0xff); // LSB du y du point
-			i++;
-			seg_pt_nb++;
-			x->list_length+=4;
-			
-			if ( i>=nb_point ) { /* printf("i>=nb_point (%d >= %d): break !\n", i, nb_point); */ break;}
-			if (cur_color!=x->short_data[2][i]) { /* printf("cur_color changed\n"); */ break;} // break the loop !
-		}
-		ap++->a_w.w_float= (float) ((seg_pt_nb & 0xff00)>>8); // MSB du nb de point du segment
-		ap++->a_w.w_float= (float) (seg_pt_nb & 0xff); // LSB du nb de point du segment
-		x->list_length+=2;
-		ap=bp;
-		nb_segment++;
-	}
-	x->trame[0].a_w.w_float = 1.; // trame status
-	x->trame[1].a_w.w_float = (float) ((nb_segment & 0xff00) >> 8); // MSB du nb de segment
-	x->trame[2].a_w.w_float = (float) (nb_segment & 0xff); // LSB du nb de segment
-	x->list_length+=3;
-	
-	//~ printf("send %d bytes\n", x->list_length);
-	outlet_anything(x->m_dataout, gensym("frame"), x->list_length, x->trame);
-
-	
-	ap=NULL;
-	
-    x=NULL; /* don't warn about unused variables */
 }
 
 void ildasend_send_setting(t_ildasend *x)
@@ -181,6 +118,8 @@ void ildasend_send_setting(t_ildasend *x)
         lo_send(x->OSC_destination, "/setting/scan_freq", "f", x->settings.scan_freq );
         lo_send(x->OSC_destination, "/setting/dst_point", "ffffffff", x->dst_point[0], x->dst_point[1], x->dst_point[2], x->dst_point[3], x->dst_point[4], x->dst_point[5], x->dst_point[6], x->dst_point[7] );
         lo_send(x->OSC_destination, "/setting/perspective_correction", "f", x->perspective_correction );
+    } else {
+        ildasend_disconnect(x);
     }
 }
 
@@ -191,7 +130,7 @@ void ildasend_settab ( t_ildasend *x, t_symbol* s, unsigned int ac, t_atom* av )
 		pd_error(x,"ildasend: wong arg number, usage : settab <x|y|r|g|b> <table name>");
 		return;
 	}
-    int i=0;
+    unsigned int i=0;
 	for(i=0;i<ac;i++){
         if ( av[i].a_type != A_SYMBOL){
             pd_error(x,"ildasend: wrong arg type, settab args must be symbol");
@@ -229,19 +168,28 @@ void ildasend_connect(t_ildasend *x, t_symbol* hostname, float port){
     sprintf(portstr, "%d", (int) port);
     x->OSC_destination = lo_address_new(hostname->s_name,portstr);
     
+    t_atom data;
+    
     if ( x->OSC_destination ){
-        outlet_float(x->m_dataout, 1.);
+        SETFLOAT(&data,1.);
+        outlet_anything(x->m_dataout, gensym("connected"), 1, &data);
     } else {
-        outlet_float(x->m_dataout, 0.);
+        SETFLOAT(&data,0.);
+        outlet_anything(x->m_dataout, gensym("connected"), 1, &data);
     }
     return;
 }
 
 void ildasend_disconnect(t_ildasend *x){
-    lo_address_free(x->OSC_destination);
-    x->OSC_destination=NULL;
     
-    outlet_float(x->m_dataout, 0.);
+    if (x->OSC_destination)
+    {
+        lo_address_free(x->OSC_destination);
+        x->OSC_destination=NULL;
+    }
+    t_atom data;
+    SETFLOAT(&data,0.);
+    outlet_anything(x->m_dataout, gensym("connected"), 1, &data);
 }
 
 void ildasend_scale(t_ildasend *x, t_symbol* s, t_float scalex, t_float scaley, t_float scalez)
@@ -252,8 +200,8 @@ void ildasend_scale(t_ildasend *x, t_symbol* s, t_float scalex, t_float scaley, 
     
     if ( x->OSC_destination ){
         lo_send(x->OSC_destination, "/setting/scale", "fff", x->settings.scale[0], x->settings.scale[1], x->settings.scale[2] );
+        ildasend_check_senderror(x);
     }
-
 }
 
 void ildasend_dst_point(t_ildasend *x, t_symbol* s, int ac, t_atom *av)
@@ -277,7 +225,9 @@ void ildasend_dst_point(t_ildasend *x, t_symbol* s, int ac, t_atom *av)
         
     if ( x->OSC_destination ){
         lo_send(x->OSC_destination, "/setting/dst_point", "ffffffff", x->dst_point[0], x->dst_point[1], x->dst_point[2], x->dst_point[3], x->dst_point[4], x->dst_point[5], x->dst_point[6], x->dst_point[7] );
+        ildasend_check_senderror(x);
     }
+    
 }
 
 void ildasend_offset(t_ildasend *x, t_symbol* s, t_float offsetx, t_float offsety, t_float offsetz)
@@ -288,6 +238,7 @@ void ildasend_offset(t_ildasend *x, t_symbol* s, t_float offsetx, t_float offset
     
     if ( x->OSC_destination ){
         lo_send(x->OSC_destination, "/setting/offset", "fff", x->settings.offset[0], x->settings.offset[1], x->settings.offset[2] );
+        ildasend_check_senderror(x);
     }
 }
 
@@ -299,6 +250,7 @@ void ildasend_invert(t_ildasend *x, t_symbol* s, t_float invertx, t_float invert
     
     if ( x->OSC_destination ){
         lo_send(x->OSC_destination, "/setting/invert", "fff", x->settings.invert[0], x->settings.invert[1], x->settings.invert[2] );
+        ildasend_check_senderror(x);
     }
 }
 
@@ -310,6 +262,7 @@ void ildasend_intensity(t_ildasend *x, t_symbol* s, t_float intensityx, t_float 
     
     if ( x->OSC_destination ){
         lo_send(x->OSC_destination, "/setting/intensity", "fff", x->settings.intensity[0], x->settings.intensity[1], x->settings.intensity[2] );
+        ildasend_check_senderror(x);
     }
 }
 
@@ -319,6 +272,7 @@ void ildasend_end_line_correction(t_ildasend *x, t_symbol* s, t_float correction
     
     if ( x->OSC_destination ){
         lo_send(x->OSC_destination, "/setting/end_line_correction", "f", x->settings.end_line_correction );
+        ildasend_check_senderror(x);
     }
 }
 
@@ -328,8 +282,8 @@ void ildasend_scan_freq(t_ildasend *x, t_symbol* s, t_float scan_freq)
 
     if ( x->OSC_destination ){
         lo_send(x->OSC_destination, "/setting/scan_freq", "f", x->settings.scan_freq );
+        ildasend_check_senderror(x);
     }
-    return;
 }
 
 void ildasend_perspective_correction(t_ildasend *x, t_symbol* s, t_float f)
@@ -338,26 +292,12 @@ void ildasend_perspective_correction(t_ildasend *x, t_symbol* s, t_float f)
     
     if ( x->OSC_destination ){
         lo_send(x->OSC_destination, "/setting/perspective_correction", "f", x->perspective_correction );
+        ildasend_check_senderror(x);
     }
-    
-	return;
-
 }
 
-void *ildasend_free(t_ildasend *x){
-	free(x->raw_data);
-	free(x->short_data[0]);
-	free(x->short_data[1]);
-	free(x->short_data[2]);
-	free(x->trame);
-	x->raw_data=NULL;
-	x->short_data[0]=NULL;
-	x->short_data[1]=NULL;
-	x->short_data[2]=NULL;
-	x->trame=NULL;
-
-
-    return;
+void ildasend_free(t_ildasend *x){
+    ildasend_disconnect(x);
 }
 
     /* this is a pointer to the class for "ildasend", which is created in the
@@ -369,7 +309,7 @@ t_class *ildasend_class;
 void *ildasend_new()
 {
     t_ildasend *x = (t_ildasend *)pd_new(ildasend_class);
-    x->m_dataout = outlet_new(x,0);
+    x->m_dataout = outlet_new((t_object *) x,0);
     x->OSC_destination = NULL;
     
     unsigned int i;
@@ -411,7 +351,7 @@ void *ildasend_new()
     /* this is called once at setup time, when this code is loaded into Pd. */
 void ildasend_setup(void)
 {
-    ildasend_class = class_new(gensym("ildasend"), (t_newmethod)ildasend_new, (t_newmethod)ildasend_free, 
+    ildasend_class = class_new(gensym("ildasend"), (t_newmethod)ildasend_new, (t_method)ildasend_free, 
 			sizeof(t_ildasend), 0, A_DEFFLOAT, 0);
     class_addmethod(ildasend_class, (t_method)ildasend_settab, gensym("settab"), A_GIMME, 0);
     class_addmethod(ildasend_class, (t_method)ildasend_dst_point, gensym("dst_point"), A_GIMME, 0);
@@ -426,7 +366,6 @@ void ildasend_setup(void)
     class_addmethod(ildasend_class, (t_method)ildasend_disconnect, gensym("disconnect"), A_CANT, 0);
     class_addmethod(ildasend_class, (t_method)ildasend_send_setting, gensym("sendsettings"), A_CANT, 0);
     class_addbang(ildasend_class, ildasend_bang);
-    class_addfloat(ildasend_class, ildasend_float);
 
 #ifdef HAVE_OPENCV
     post("ildasend by Antoine Villeret,\n\tbuild on %s at %s with OpenCV support.",__DATE__, __TIME__);
