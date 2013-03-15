@@ -1,4 +1,4 @@
-#N canvas 1081 114 702 655 10;
+#N canvas 1071 144 702 761 10;
 #N canvas 572 127 450 537 make_table 0;
 #X obj 51 -785 tabwrite ilda_X;
 #X obj 165 -715 tabwrite ilda_Y;
@@ -54,7 +54,7 @@
 #X obj 70 611 print ildasend;
 #X msg -11 355 disconnect;
 #X msg -38 298 connect 127.0.0.1 3265;
-#N canvas 78 278 1748 737 settings 0;
+#N canvas 74 290 1748 737 settings 0;
 #X obj 56 11 cnv 15 198 448 empty empty settings 8 8 0 14 -261234 -258113
 0;
 #X obj 62 44 nbx 5 14 -1000 1000 0 1 \$0-posx_out \$0-posx_in proj_position_x
@@ -76,9 +76,9 @@ blanking_invert 17 7 0 10 -262144 -1 -1 0 1;
 #X obj 61 246 nbx 5 14 0 255 0 1 \$0-intensityr_out \$0-intensityr_in
 R 0 -8 0 10 -262144 -1 -1 0.85 256;
 #X obj 60 404 nbx 5 14 0 1000 0 1 \$0-end_line_correction_out \$0-end_line_correction_in
-sample 57 7 0 10 -262144 -1 -1 405 256;
+sample 57 7 0 10 -262144 -1 -1 427 256;
 #X obj 60 443 nbx 5 14 1 100 0 1 \$0-scan_freq_out \$0-scan_freq_in
-kHz 57 7 0 10 -262144 -1 -1 62.5 256;
+empty 57 7 0 10 -262144 -1 -1 62.5 256;
 #X text 61 427 scanner frequency;
 #X obj 364 67 route setting;
 #X obj 364 89 route offset scale invert intensity colormode angle_correction
@@ -171,6 +171,17 @@ B 0 -8 0 10 -262144 -1 -1 9.28 256;
 -262144 -1 -1 0 1;
 #X msg 335 472 perspective_correction \$1;
 #X text 58 390 blank delay;
+#X text 1159 456 explanation :;
+#X text 1186 473 blank delay is a delay in the blanking table to compensate
+hardware blanking delay \, this should be tuned individually for each
+laser projector;
+#X text 1186 533 perspective correction is done on the server side
+\, here you just send coordinates of a target square. i.e. you should
+adjust the 4 coordinates to see a square on the wall when you are expecting
+a square;
+#X text 114 443 kHz or pps;
+#X text 1186 593 scanner frequency should match the frequency of your
+hardware galvanometers (aka laser scanners);
 #X connect 13 0 14 0;
 #X connect 14 0 15 0;
 #X connect 14 1 16 0;
@@ -272,10 +283,24 @@ B 0 -8 0 10 -262144 -1 -1 9.28 256;
 #X text -77 182 settab: associate an ILDA channel to a table;
 #X text 28 267 pack table data into an OSC blob and send it;
 #X text 102 297 connect <ip> <port> \, no multicast for now;
+#X obj 195 611 tgl 15 0 empty empty connected 17 7 0 10 -262144 -1
+-1 1 1;
+#X text 23 409 see inside the GOP to know which messages could be passed
+to control settings ------------------------------------>;
+#X obj 195 579 route connected error;
+#X obj 290 638 unpack f s;
+#X floatatom 290 660 5 0 0 0 - - -;
+#X symbolatom 327 659 20 0 0 0 - - -;
+#X text 294 613 report sending errors;
 #X connect 1 0 3 0;
 #X connect 1 0 8 0;
+#X connect 1 0 20 0;
 #X connect 2 0 1 0;
 #X connect 4 0 1 0;
 #X connect 5 0 1 0;
 #X connect 7 0 1 0;
 #X connect 13 0 1 0;
+#X connect 20 0 18 0;
+#X connect 20 1 21 0;
+#X connect 21 0 22 0;
+#X connect 21 1 23 0;
