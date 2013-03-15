@@ -1,4 +1,4 @@
-#N canvas 1055 192 702 767 10;
+#N canvas 942 182 772 767 10;
 #N canvas 568 139 450 537 make_table 0;
 #X obj 42 -692 tabwrite ilda_X;
 #X obj 165 -715 tabwrite ilda_Y;
@@ -60,19 +60,19 @@
 #X obj -54 268 bng 15 250 50 0 empty empty send_table 17 7 0 10 -262144
 -1 -1;
 #X msg 16 411 disconnect;
-#N canvas 72 296 1748 737 settings 0;
+#N canvas 68 308 1748 737 settings 0;
 #X obj 56 11 cnv 15 198 448 empty empty settings 8 8 0 14 -261234 -258113
 0;
 #X obj 62 44 nbx 5 14 -1000 1000 0 1 \$0-posx_out \$0-posx_in proj_position_x
 0 -8 0 10 -262144 -1 -1 0 256;
 #X obj 62 74 nbx 5 14 -1000 1000 0 1 \$0-posy_out \$0-posy_in proj_position_y
-0 -8 0 10 -262144 -1 -1 0 256;
+0 -8 0 10 -262144 -1 -1 -0.26 256;
 #X obj 62 104 nbx 5 14 -1000 1000 0 1 \$0-sizex_out \$0-sizex_in proj_scale_x
-0 -8 0 10 -262144 -1 -1 1 256;
+0 -8 0 10 -262144 -1 -1 0.6 256;
 #X obj 62 134 nbx 5 14 -1000 1000 0 1 \$0-sizey_out \$0-sizey_in proj_scale_y
-0 -8 0 10 -262144 -1 -1 1 256;
+0 -8 0 10 -262144 -1 -1 0.6 256;
 #X obj 62 154 tgl 15 1 \$0-invertx_out \$0-invertx_in invert_X 17 7
-0 10 -262144 -1 -1 0 1;
+0 10 -262144 -1 -1 1 1;
 #X obj 62 174 tgl 15 1 \$0-inverty_out \$0-inverty_in invert_Y 17 7
 0 10 -262144 -1 -1 0 1;
 #X obj 62 194 tgl 15 1 \$0-blankingoff_out \$0-blankingoff_in blanking_OFF
@@ -80,9 +80,9 @@
 #X obj 62 214 tgl 15 1 \$0-invertblanking_out \$0-invertblanking_in
 blanking_invert 17 7 0 10 -262144 -1 -1 0 1;
 #X obj 61 246 nbx 5 14 0 255 0 1 \$0-intensityr_out \$0-intensityr_in
-R 0 -8 0 10 -262144 -1 -1 1.46 256;
+R 0 -8 0 10 -262144 -1 -1 1 256;
 #X obj 60 404 nbx 5 14 -1000 1000 0 1 \$0-end_line_correction_out \$0-end_line_correction_in
-sample 57 7 0 10 -262144 -1 -1 3.19 256;
+sample 57 7 0 10 -262144 -1 -1 -4 256;
 #X obj 60 443 nbx 5 14 1 100 0 1 \$0-scan_freq_out \$0-scan_freq_in
 kHz 57 7 0 10 -262144 -1 -1 12 256;
 #X text 61 427 scanner frequency;
@@ -158,23 +158,23 @@ B 0 -8 0 10 -262144 -1 -1 1 256;
 #X obj 60 266 cnv 15 190 120 empty empty empty 20 12 0 14 -233017 -66577
 0;
 #X obj 72 289 nbx 5 16 -20000 20000 0 1 empty empty x -10 7 0 12 -203904
--1 -1 -1.68 256;
+-1 -1 -0.93 256;
 #X obj 72 309 nbx 5 16 -20000 20000 0 1 empty empty y -10 7 0 12 -203904
 -1 -1 1 256;
 #X obj 172 289 nbx 5 16 -2000 20000 0 1 empty empty x -10 7 0 12 -203904
--1 -1 1 256;
+-1 -1 0.94 256;
 #X obj 172 309 nbx 5 16 -20000 20000 0 1 empty empty y -10 7 0 12 -203904
--1 -1 1 256;
+-1 -1 1.24 256;
 #X obj 172 339 nbx 5 16 -20000 20000 0 1 empty empty x -10 7 0 12 -203904
 -1 -1 1 256;
 #X obj 172 359 nbx 5 16 -20000 20000 0 1 empty empty y -10 7 0 12 -203904
--1 -1 -1 256;
+-1 -1 -0.8 256;
 #X obj 72 339 nbx 5 16 -20000 20000 0 1 empty empty x -10 7 0 12 -203904
--1 -1 -0.61 256;
+-1 -1 -1 256;
 #X obj 72 359 nbx 5 16 -20000 20000 0 1 empty empty y -10 7 0 12 -203904
 -1 -1 -1 256;
-#X obj 64 269 tgl 15 0 empty empty perspective_correction 17 7 0 10
--262144 -1 -1 0 1;
+#X obj 66 269 tgl 15 1 empty empty perspective_correction 17 7 0 10
+-262144 -1 -1 1 1;
 #X msg 335 472 perspective_correction \$1;
 #X text 58 390 blank delay;
 #X obj 1448 268 r \$0-blankingoff_out;
@@ -282,7 +282,7 @@ B 0 -8 0 10 -262144 -1 -1 1 256;
 #X text -77 182 settab: associate an ILDA channel to a table;
 #X text 28 267 pack table data into an OSC blob and send it;
 #X text 115 327 connect <ip> <port> \, no multicast for now;
-#N canvas 1 146 937 729 ildafile 0;
+#N canvas 136 202 937 729 ildafile 0;
 #X obj -815 28 openpanel;
 #X floatatom -752 190 5 0 0 0 frame - -;
 #X obj -690 264 route frame_info file_info;
@@ -301,6 +301,8 @@ B 0 -8 0 10 -262144 -1 -1 1 256;
 #X obj -654 140 t b b;
 #X obj -664 220 outlet;
 #X obj -439 -34 inlet;
+#X obj -547 126 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144
+-1 -1;
 #X connect 0 0 5 0;
 #X connect 1 0 4 0;
 #X connect 2 1 3 0;
@@ -319,6 +321,7 @@ B 0 -8 0 10 -262144 -1 -1 1 256;
 #X connect 14 0 15 0;
 #X connect 14 1 6 0;
 #X connect 16 0 8 0;
+#X connect 17 0 14 0;
 #X restore 131 470 pd ildafile;
 #X obj 131 420 bng 15 250 50 0 empty empty open_a_file 17 7 0 10 -4032
 -258113 -1;
@@ -340,18 +343,35 @@ B 0 -8 0 10 -262144 -1 -1 1 256;
 #X obj 252 590 route error connected;
 #X obj 367 625 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 1
 1;
+#X obj 418 624 sel 1;
+#X msg 418 646 sendsettings;
+#X text 456 627 auto send settings when connected;
+#X obj -34 544 ildasend;
+#X obj 60 296 loadbang;
+#X obj -47 591 sel 1;
+#X msg -40 615 sendsettings;
+#X text -9 594 auto send settings when connected;
+#X obj -34 566 route connected;
+#X msg -21 509 disconnect;
+#X obj -5 663 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 1
+1;
+#X obj -67 463 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144
+-1 -1;
 #X connect 1 0 6 0;
 #X connect 1 0 31 0;
 #X connect 2 0 1 0;
 #X connect 3 0 1 0;
 #X connect 5 0 1 0;
+#X connect 5 0 36 0;
 #X connect 11 0 1 0;
 #X connect 11 0 16 1;
+#X connect 11 0 36 0;
 #X connect 16 0 1 0;
 #X connect 17 0 16 0;
 #X connect 18 0 11 0;
 #X connect 19 0 1 0;
 #X connect 20 0 1 0;
+#X connect 20 0 36 0;
 #X connect 21 0 23 0;
 #X connect 22 0 21 0;
 #X connect 23 0 2 0;
@@ -365,3 +385,14 @@ B 0 -8 0 10 -262144 -1 -1 1 256;
 #X connect 29 0 30 0;
 #X connect 31 0 26 0;
 #X connect 31 1 32 0;
+#X connect 31 1 33 0;
+#X connect 33 0 34 0;
+#X connect 34 0 1 0;
+#X connect 36 0 41 0;
+#X connect 37 0 20 0;
+#X connect 38 0 39 0;
+#X connect 39 0 36 0;
+#X connect 41 0 38 0;
+#X connect 41 0 43 0;
+#X connect 42 0 36 0;
+#X connect 44 0 36 0;
