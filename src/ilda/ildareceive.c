@@ -142,7 +142,7 @@ int ildareceive_invert(const char *path, const char *types, lo_arg **argv,
     t_atom atom_data[3];
     for(i=0; i<3; i++){
         x->settings.invert[i]=argv[i]->f;
-        SETFLOAT(atom_data+i, x->settings.scale[i]);        
+        SETFLOAT(atom_data+i, x->settings.invert[i]);        
     }
     
     outlet_anything(x->m_dataout, gensym("invert"), 3, atom_data);
@@ -190,7 +190,7 @@ int ildareceive_end_line_correction(const char *path, const char *types, lo_arg 
     x->settings.end_line_correction=argv[0]->f;
     t_atom atom_data;
     SETFLOAT(&atom_data, x->settings.end_line_correction);
-    outlet_anything(x->m_dataout, gensym("end_line_correction"), 0, &atom_data);
+    outlet_anything(x->m_dataout, gensym("end_line_correction"), 1, &atom_data);
     return 0;
 }
 
@@ -198,9 +198,10 @@ int ildareceive_scan_freq(const char *path, const char *types, lo_arg **argv,
 		    int argc, void *data, t_ildareceive *x)
 {
     x->settings.scan_freq=argv[0]->f;
+    post("scan_freq : %f",x->settings.scan_freq);
     t_atom atom_data;
     SETFLOAT(&atom_data, x->settings.scan_freq);
-    outlet_anything(x->m_dataout, gensym("scan_freq"), 0, &atom_data) ;
+    outlet_anything(x->m_dataout, gensym("scan_freq"), 1, &atom_data) ;
     return 0;
 }
 
@@ -209,7 +210,9 @@ int ildareceive_enable_perspective_correction(const char *path, const char *type
 {
 #ifdef HAVE_OPENCV
 	x->perspective_correction=(argv[0]->f!=0);
-    post("perspective correction %1f",x->perspective_correction);
+    t_atom atom_data;
+    SETFLOAT(&atom_data, x->perspective_correction);
+    outlet_anything(x->m_dataout, gensym("perspective_correction"), 1, &atom_data);
 	return 0;
 #else
 	pd_error(x,"ildasend: you need to compile with OpenCV to use this method (perspective_correction)");
@@ -224,7 +227,7 @@ int ildareceive_generic_handler(const char *path, const char *types, lo_arg **ar
     
     //~ printf("path: %s\n", path);
     if ( argc < 2 ){
-        pd_error(x, "ildareceive: ouch ! not enough blob in OSC message !");
+        pd_error(x, "ildareceive: ouch ! not enough (%d) blob in OSC message !", argc);
     }
     
     if ( x->perspective_correction ){
