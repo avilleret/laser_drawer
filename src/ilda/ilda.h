@@ -28,8 +28,8 @@ typedef struct ilda_settings
 {
     t_float scale[3], offset[3], invert[3]; //~ scale, offset and invert for X,Y and intensity
     t_float intensity[3]; //~ global intensity value for rgb
-    t_int mode; //~ 0:analog color, 1:digital color, 2:analog green, 3:digital green
-    t_int blanking_off;
+    int mode; //~ 0:analog color, 1:digital color, 2:analog green, 3:digital green
+    int blanking_off;
     t_float angle_correction, end_line_correction, scan_freq;
     
 } t_ilda_settings;

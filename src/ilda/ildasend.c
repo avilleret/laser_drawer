@@ -266,6 +266,16 @@ void ildasend_intensity(t_ildasend *x, t_symbol* s, t_float intensityx, t_float 
     }
 }
 
+void ildasend_blanking_off(t_ildasend *x, t_symbol* s, t_float v)
+{
+    x->settings.blanking_off=v;
+    
+    if ( x->OSC_destination ){
+        lo_send(x->OSC_destination, "/setting/blanking_off", "i", x->settings.blanking_off );
+        ildasend_check_senderror(x);
+    }
+}
+
 void ildasend_end_line_correction(t_ildasend *x, t_symbol* s, t_float correction)
 {
     x->settings.end_line_correction=correction;
@@ -361,6 +371,7 @@ void ildasend_setup(void)
     class_addmethod(ildasend_class, (t_method)ildasend_invert, gensym("invert"), A_FLOAT, A_FLOAT, A_FLOAT, 0);
     class_addmethod(ildasend_class, (t_method)ildasend_intensity, gensym("intensity"), A_FLOAT, A_FLOAT, A_FLOAT, 0);
     class_addmethod(ildasend_class, (t_method)ildasend_end_line_correction, gensym("end_line_correction"), A_FLOAT, 0);
+    class_addmethod(ildasend_class, (t_method)ildasend_blanking_off, gensym("blanking_off"), A_FLOAT, 0);
     class_addmethod(ildasend_class, (t_method)ildasend_scan_freq, gensym("scan_freq"), A_FLOAT, 0);
     class_addmethod(ildasend_class, (t_method)ildasend_connect, gensym("connect"), A_SYMBOL, A_FLOAT, 0);
     class_addmethod(ildasend_class, (t_method)ildasend_disconnect, gensym("disconnect"), A_CANT, 0);
