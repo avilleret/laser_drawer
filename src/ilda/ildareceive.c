@@ -198,7 +198,6 @@ int ildareceive_scan_freq(const char *path, const char *types, lo_arg **argv,
 		    int argc, void *data, t_ildareceive *x)
 {
     x->settings.scan_freq=argv[0]->f;
-    post("scan_freq : %f",x->settings.scan_freq);
     t_atom atom_data;
     SETFLOAT(&atom_data, x->settings.scan_freq);
     outlet_anything(x->m_dataout, gensym("scan_freq"), 1, &atom_data) ;
@@ -253,13 +252,13 @@ int ildareceive_generic_handler(const char *path, const char *types, lo_arg **ar
                 return 0;
             }
             
-            garray_resize_long(x->channel[i].array,size);
+            //~ garray_resize_long(x->channel[i].array,size);
             if (!garray_getfloatwords(x->channel[i].array, &(x->channel[i].vecsize), &(x->channel[i].vec))){
                 pd_error(x,"ildasend: %s: can't access correctly", x->channel[i].arrayname->s_name);
                 return 0;
             }
             
-            //~ size = x->channel[i].vecsize > size ? size : x->channel[i].vecsize;
+            size = x->channel[i].vecsize > size ? size : x->channel[i].vecsize;
             
             if ( sizeof(t_float) == sizeof(t_word) ) {
                 t_word *data = lo_blob_dataptr(b);
