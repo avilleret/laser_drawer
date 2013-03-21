@@ -1,4 +1,4 @@
-#N canvas 942 182 772 767 10;
+#N canvas 1142 125 772 767 10;
 #N canvas 568 139 450 537 make_table 0;
 #X obj 42 -692 tabwrite ilda_X;
 #X obj 165 -715 tabwrite ilda_Y;
@@ -158,17 +158,17 @@ B 0 -8 0 10 -262144 -1 -1 1 256;
 #X obj 60 266 cnv 15 190 120 empty empty empty 20 12 0 14 -233017 -66577
 0;
 #X obj 72 289 nbx 5 16 -20000 20000 0 1 empty empty x -10 7 0 12 -203904
--1 -1 -0.93 256;
+-1 -1 -1 256;
 #X obj 72 309 nbx 5 16 -20000 20000 0 1 empty empty y -10 7 0 12 -203904
 -1 -1 1 256;
 #X obj 172 289 nbx 5 16 -2000 20000 0 1 empty empty x -10 7 0 12 -203904
--1 -1 0.94 256;
+-1 -1 1 256;
 #X obj 172 309 nbx 5 16 -20000 20000 0 1 empty empty y -10 7 0 12 -203904
--1 -1 1.24 256;
+-1 -1 1 256;
 #X obj 172 339 nbx 5 16 -20000 20000 0 1 empty empty x -10 7 0 12 -203904
 -1 -1 1 256;
 #X obj 172 359 nbx 5 16 -20000 20000 0 1 empty empty y -10 7 0 12 -203904
--1 -1 -0.8 256;
+-1 -1 -1 256;
 #X obj 72 339 nbx 5 16 -20000 20000 0 1 empty empty x -10 7 0 12 -203904
 -1 -1 -1 256;
 #X obj 72 359 nbx 5 16 -20000 20000 0 1 empty empty y -10 7 0 12 -203904
@@ -272,17 +272,12 @@ B 0 -8 0 10 -262144 -1 -1 1 256;
 #X restore 379 22 pd settings;
 #X obj 70 492 r \$0-ildasend_in;
 #X obj 70 721 s \$0-ildasend_out;
-#X obj -46 30 table ilda_Y 100;
-#X obj -46 50 table ilda_R 100;
-#X obj -46 70 table ilda_G 100;
-#X obj -46 90 table ilda_B 100;
 #X msg -85 202 settab x ilda_X y ilda_Y r ilda_R g ilda_G b ilda_B
 ;
-#X obj -46 11 table ilda_X 100;
 #X text -77 182 settab: associate an ILDA channel to a table;
 #X text 28 267 pack table data into an OSC blob and send it;
 #X text 115 327 connect <ip> <port> \, no multicast for now;
-#N canvas 136 202 937 729 ildafile 0;
+#N canvas 132 214 937 729 ildafile 1;
 #X obj -815 28 openpanel;
 #X floatatom -752 190 5 0 0 0 frame - -;
 #X obj -690 264 route frame_info file_info;
@@ -291,7 +286,7 @@ B 0 -8 0 10 -262144 -1 -1 1 256;
 #X msg -815 50 read \$1 \, 0;
 #X obj -662 172 f;
 #X obj -589 189 + 1;
-#X obj -646 99 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 0
+#X obj -646 99 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 1
 1;
 #X obj -589 213 % 25;
 #X obj -654 118 metro 200;
@@ -310,7 +305,6 @@ B 0 -8 0 10 -262144 -1 -1 1 256;
 #X connect 4 0 2 0;
 #X connect 5 0 4 0;
 #X connect 6 0 7 0;
-#X connect 6 0 1 0;
 #X connect 7 0 9 0;
 #X connect 8 0 10 0;
 #X connect 9 0 6 1;
@@ -326,14 +320,14 @@ B 0 -8 0 10 -262144 -1 -1 1 256;
 #X obj 131 420 bng 15 250 50 0 empty empty open_a_file 17 7 0 10 -4032
 -258113 -1;
 #X obj -81 159 loadbang;
-#X msg 4 386 connect test-video 3265;
+#X msg 20 386 connect test-video 3265;
 #X msg -25 327 connect 127.0.0.1 3265;
 #X obj 157 106 metro 100;
 #X obj 152 84 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 0
 1;
 #X obj 157 128 t b b;
-#X obj 4 363 loadbang;
-#X obj 194 444 tgl 15 0 empty empty play 17 7 0 10 -262144 -1 -1 0
+#X obj 16 359 loadbang;
+#X obj 194 444 tgl 15 0 empty empty play 17 7 0 10 -262144 -1 -1 1
 1;
 #X msg 252 612 \$2 \$1;
 #X obj 252 634 unpack s f;
@@ -346,53 +340,49 @@ B 0 -8 0 10 -262144 -1 -1 1 256;
 #X obj 418 624 sel 1;
 #X msg 418 646 sendsettings;
 #X text 456 627 auto send settings when connected;
-#X obj -34 544 ildasend;
 #X obj 60 296 loadbang;
-#X obj -47 591 sel 1;
-#X msg -40 615 sendsettings;
-#X text -9 594 auto send settings when connected;
-#X obj -34 566 route connected;
-#X msg -21 509 disconnect;
-#X obj -5 663 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 1
+#X obj -46 11 table ilda_X 100;
+#X obj -46 30 table ilda_Y 100;
+#X obj -46 50 table ilda_R 100;
+#X obj -46 70 table ilda_G 100;
+#X obj -46 90 table ilda_B 100;
+#X obj -43 650 ildasend;
+#X msg -40 619 connect 127.0.0.1 3265;
+#X obj -43 672 route connected;
+#X obj -1 718 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 1
 1;
-#X obj -67 463 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144
--1 -1;
+#X msg -57 582 disconnect;
+#X msg -97 547 connect test-video 3265;
 #X connect 1 0 6 0;
-#X connect 1 0 31 0;
+#X connect 1 0 26 0;
 #X connect 2 0 1 0;
 #X connect 3 0 1 0;
 #X connect 5 0 1 0;
-#X connect 5 0 36 0;
+#X connect 7 0 1 0;
+#X connect 7 0 11 1;
 #X connect 11 0 1 0;
-#X connect 11 0 16 1;
-#X connect 11 0 36 0;
-#X connect 16 0 1 0;
+#X connect 12 0 11 0;
+#X connect 13 0 7 0;
+#X connect 14 0 1 0;
+#X connect 15 0 1 0;
+#X connect 16 0 18 0;
 #X connect 17 0 16 0;
-#X connect 18 0 11 0;
-#X connect 19 0 1 0;
-#X connect 20 0 1 0;
-#X connect 20 0 36 0;
-#X connect 21 0 23 0;
-#X connect 22 0 21 0;
-#X connect 23 0 2 0;
-#X connect 23 1 0 0;
-#X connect 24 0 19 0;
-#X connect 25 0 16 2;
-#X connect 26 0 27 0;
-#X connect 27 0 29 0;
-#X connect 27 1 28 0;
-#X connect 28 0 29 1;
-#X connect 29 0 30 0;
-#X connect 31 0 26 0;
-#X connect 31 1 32 0;
-#X connect 31 1 33 0;
-#X connect 33 0 34 0;
-#X connect 34 0 1 0;
-#X connect 36 0 41 0;
-#X connect 37 0 20 0;
-#X connect 38 0 39 0;
-#X connect 39 0 36 0;
-#X connect 41 0 38 0;
-#X connect 41 0 43 0;
-#X connect 42 0 36 0;
-#X connect 44 0 36 0;
+#X connect 18 0 2 0;
+#X connect 18 1 0 0;
+#X connect 19 0 14 0;
+#X connect 20 0 11 2;
+#X connect 21 0 22 0;
+#X connect 22 0 24 0;
+#X connect 22 1 23 0;
+#X connect 23 0 24 1;
+#X connect 24 0 25 0;
+#X connect 26 0 21 0;
+#X connect 26 1 27 0;
+#X connect 26 1 28 0;
+#X connect 28 0 29 0;
+#X connect 29 0 1 0;
+#X connect 37 0 39 0;
+#X connect 38 0 37 0;
+#X connect 39 0 40 0;
+#X connect 41 0 37 0;
+#X connect 42 0 37 0;
