@@ -34,7 +34,6 @@ static void ildareceive_perspective_correction(t_ildareceive *x, lo_arg **argv, 
     blob[1]=argv[1];
     int size = lo_blob_datasize(blob[0])/sizeof(t_float); //~ assume all blobs have the same size
     
-    //~ resize arrays
     for ( i=0;i<2;i++) {
         if ( !x->channel[i].arrayname ){
             pd_error(x,"ildareceive: don't be so impatient, settab first...");
@@ -47,12 +46,14 @@ static void ildareceive_perspective_correction(t_ildareceive *x, lo_arg **argv, 
             return ;
         }
         
-        garray_resize_long(x->channel[i].array,size);
+        //~ garray_resize_long(x->channel[i].array,size);
         if (!garray_getfloatwords(x->channel[i].array, &(x->channel[i].vecsize), &(x->channel[i].vec))){
             pd_error(x,"ildasend: %s: can't resize correctly", x->channel[i].arrayname->s_name);
             return ;
         }
     }
+    
+    size = x->channel[i].vecsize > size ? size : x->channel[i].vecsize;
 
 	src=cvCreateMat(size, 1, CV_32FC2 ); 
 	dst=cvCreateMat(size, 1, CV_32FC2 ); 
@@ -67,8 +68,6 @@ static void ildareceive_perspective_correction(t_ildareceive *x, lo_arg **argv, 
 		*(pt++)=*(blobpty++); // Replacement for CV_MAT_ELEM broken since 2.3.1
         //~ printf("%d\t%.3f,%.3f\n", i, x->channel[0].vec[i].w_float, x->channel[1].vec[i].w_float);
 	}
-    
-    dst=cvCreateMat(size, 1, CV_32FC2 );
     cvPerspectiveTransform(src, dst, x->map_matrix);
 
     //~ printf("id\tsrc\t\tdst\n"); pt=src->data.fl;
@@ -84,7 +83,7 @@ static void ildareceive_perspective_correction(t_ildareceive *x, lo_arg **argv, 
     //~ garray_redraw(x->channel[0].array);
     //~ garray_redraw(x->channel[1].array);
     //~ Release Matrix data
-	if (dst!=src) { 
+	if (dst) { 
 		cvReleaseMat(&dst);
 		dst=NULL;
 	}
@@ -235,7 +234,6 @@ int ildareceive_generic_handler(const char *path, const char *types, lo_arg **ar
         i=0;
     }
     int size=0;
-    
     for (; i<argc; i++) {
         if (types[i]=='b'){
             lo_blob b = argv[i];
