@@ -1,5 +1,5 @@
-#N canvas 287 206 1561 790 10;
-#X declare -path bin64;
+#N canvas 349 223 1561 790 10;
+#X declare -path bin;
 #N canvas 568 139 450 537 make_table 0;
 #X obj 42 -692 tabwrite ilda_X;
 #X obj 165 -715 tabwrite ilda_Y;
@@ -328,7 +328,6 @@ B 0 -8 0 10 -262144 -1 -1 1 256;
 1;
 #X obj 938 407 tabread ilda_X;
 #X obj 938 327 until;
-#X obj 666 53 declare -path bin64;
 #X obj 812 206 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144
 -1 -1;
 #X obj 938 307 arraysize ilda_X;
@@ -340,15 +339,15 @@ B 0 -8 0 10 -262144 -1 -1 1 256;
 #N canvas 1 92 1132 873 message 0;
 #X obj 170 49 inlet;
 #X obj 94 680 outlet;
-#X msg 177 78 /arrayXYB 0.634 0.289 0.155 0.714 0.144 0.138 0.787 0.424
-0.9 0.305 0.749 0.328 0.009 0.703 0.366 0.535 0.258 0.949 0.257 0.603
-0.595 0.099 0.322 0.773 0.615 0.386 0.722 0.2 0.044 0.948 0.868 0.191
-0.225 0.567 0.405 0.436 0.599 0.404 0.193 0.247 0.192 0.728 0.293 0.789
-0.097 0.657 0.955 0.315 0.963 0.888 0.595 0.399 0.474 0.433 0.786 0.175
-0.837 0.353 0.241 0.564 0.264 0.492 0.793 0.517 0.458 0.214 0.385 0.243
-0.097 0.132 0.052 0.445 0.319 0.847 0.904 0.555 0.204 0.682 0.113 0.969
-0.261 0.413 0.897 0.28 0.911 0.009 0.5 0.512 0.971 0.359 0.185 0.356
-0.141 0.014 0.208 0.405 0.486 0.915 0.813 0.384 -0 -0.010101 -0.020202
+#X msg 177 78 /arrayXYB 0.743 0.56 0.761 0.481 0.556 0.722 0.19 0.715
+0.902 0.008 0.088 0.881 0.414 0.835 0.576 0.493 0.199 0.372 0.37 0.06
+0.325 0.275 0.76 0.319 0.301 0.421 0.597 0.47 0.566 0.641 0.277 0.41
+0.972 0.457 0.728 0.968 0.265 0.816 0.388 0.142 0.573 0.821 0.196 0.326
+0.892 0.47 0.572 0.552 0.565 0.386 0.406 0.721 0.77 0.556 0.037 0.838
+0.004 0.061 0.239 0.245 0.567 0.814 0.207 0.857 0.045 0.291 0.543 0.397
+0.798 0.268 0.234 0.627 0.441 0.554 0.644 0.587 0.328 0.727 0.491 0.826
+0.04 0.866 0.837 0.636 0.868 0.287 0.071 0.29 0.293 0.276 0.891 0.273
+0.476 0.827 0.293 0.519 0.742 0.37 0.549 0.64 -0 -0.010101 -0.020202
 -0.030303 -0.040404 -0.050505 -0.0606061 -0.0707071 -0.0808081 -0.0909091
 -0.10101 -0.111111 -0.121212 -0.131313 -0.141414 -0.151515 -0.161616
 -0.171717 -0.181818 -0.191919 -0.20202 -0.212121 -0.222222 -0.232323
@@ -371,7 +370,6 @@ B 0 -8 0 10 -262144 -1 -1 1 256;
 #X restore 831 479 pd message;
 #X obj 831 501 packOSC;
 #X obj 831 594 udpsend;
-#X msg 866 558 connect 127.0.0.1 3265;
 #X obj 866 538 loadbang;
 #X obj 831 616 sel 0 1;
 #X obj 831 668 del 1000;
@@ -394,56 +392,60 @@ B 0 -8 0 10 -262144 -1 -1 1 256;
 #X obj 738 352 + 1;
 #X obj 712 311 arraysize ilda_R;
 #X obj 712 411 tabread ilda_R;
+#X obj 666 53 declare -path bin;
+#X msg 866 558 connect test-video 3265;
+#X msg 939 533 disconnect;
 #X connect 6 0 10 1;
 #X connect 11 0 10 0;
 #X connect 12 0 6 0;
 #X connect 13 0 15 0;
 #X connect 14 0 13 0;
-#X connect 15 0 20 0;
+#X connect 15 0 19 0;
 #X connect 15 1 0 0;
 #X connect 16 0 10 2;
-#X connect 17 0 22 0;
-#X connect 18 0 24 0;
-#X connect 20 0 23 0;
-#X connect 21 0 18 0;
-#X connect 22 0 27 0;
-#X connect 23 0 42 0;
-#X connect 23 1 45 0;
-#X connect 23 2 44 0;
-#X connect 23 2 26 0;
-#X connect 24 0 25 0;
-#X connect 24 0 17 0;
-#X connect 25 0 24 1;
-#X connect 26 0 24 1;
-#X connect 26 0 38 1;
-#X connect 26 0 48 1;
+#X connect 17 0 21 0;
+#X connect 18 0 23 0;
+#X connect 19 0 22 0;
+#X connect 20 0 18 0;
+#X connect 21 0 26 0;
+#X connect 22 0 40 0;
+#X connect 22 1 43 0;
+#X connect 22 2 42 0;
+#X connect 22 2 25 0;
+#X connect 23 0 24 0;
+#X connect 23 0 17 0;
+#X connect 24 0 23 1;
+#X connect 25 0 23 1;
+#X connect 25 0 36 1;
+#X connect 25 0 46 1;
+#X connect 26 0 27 0;
 #X connect 27 0 28 0;
-#X connect 28 0 29 0;
-#X connect 29 0 32 0;
-#X connect 29 0 35 0;
-#X connect 30 0 29 0;
-#X connect 31 0 30 0;
-#X connect 32 0 33 0;
-#X connect 32 1 34 0;
-#X connect 33 0 30 0;
-#X connect 34 0 33 0;
-#X connect 36 0 38 0;
-#X connect 37 0 27 0;
-#X connect 38 0 39 0;
-#X connect 38 0 41 0;
-#X connect 39 0 38 1;
-#X connect 40 0 36 0;
-#X connect 41 0 37 0;
-#X connect 42 0 43 0;
-#X connect 43 0 27 0;
-#X connect 44 0 27 0;
-#X connect 45 0 50 0;
-#X connect 45 1 40 0;
-#X connect 45 2 21 0;
-#X connect 46 0 48 0;
-#X connect 47 0 27 0;
-#X connect 48 0 49 0;
-#X connect 48 0 51 0;
-#X connect 49 0 48 1;
-#X connect 50 0 46 0;
-#X connect 51 0 47 0;
+#X connect 28 0 30 0;
+#X connect 28 0 33 0;
+#X connect 29 0 51 0;
+#X connect 30 0 31 0;
+#X connect 30 1 32 0;
+#X connect 31 0 51 0;
+#X connect 32 0 31 0;
+#X connect 34 0 36 0;
+#X connect 35 0 26 0;
+#X connect 36 0 37 0;
+#X connect 36 0 39 0;
+#X connect 37 0 36 1;
+#X connect 38 0 34 0;
+#X connect 39 0 35 0;
+#X connect 40 0 41 0;
+#X connect 41 0 26 0;
+#X connect 42 0 26 0;
+#X connect 43 0 48 0;
+#X connect 43 1 38 0;
+#X connect 43 2 20 0;
+#X connect 44 0 46 0;
+#X connect 45 0 26 0;
+#X connect 46 0 47 0;
+#X connect 46 0 49 0;
+#X connect 47 0 46 1;
+#X connect 48 0 44 0;
+#X connect 49 0 45 0;
+#X connect 51 0 28 0;
+#X connect 52 0 28 0;

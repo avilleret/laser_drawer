@@ -1,4 +1,4 @@
-#N canvas 1142 125 772 767 10;
+#N canvas 1140 131 772 767 10;
 #N canvas 568 139 450 537 make_table 0;
 #X obj 42 -692 tabwrite ilda_X;
 #X obj 165 -715 tabwrite ilda_Y;
@@ -277,7 +277,7 @@ B 0 -8 0 10 -262144 -1 -1 1 256;
 #X text -77 182 settab: associate an ILDA channel to a table;
 #X text 28 267 pack table data into an OSC blob and send it;
 #X text 115 327 connect <ip> <port> \, no multicast for now;
-#N canvas 132 214 937 729 ildafile 1;
+#N canvas 130 220 937 729 ildafile 0;
 #X obj -815 28 openpanel;
 #X floatatom -752 190 5 0 0 0 frame - -;
 #X obj -690 264 route frame_info file_info;
@@ -286,7 +286,7 @@ B 0 -8 0 10 -262144 -1 -1 1 256;
 #X msg -815 50 read \$1 \, 0;
 #X obj -662 172 f;
 #X obj -589 189 + 1;
-#X obj -646 99 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 1
+#X obj -646 99 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 0
 1;
 #X obj -589 213 % 25;
 #X obj -654 118 metro 200;
@@ -323,11 +323,11 @@ B 0 -8 0 10 -262144 -1 -1 1 256;
 #X msg 20 386 connect test-video 3265;
 #X msg -25 327 connect 127.0.0.1 3265;
 #X obj 157 106 metro 100;
-#X obj 152 84 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 0
+#X obj 152 84 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 1
 1;
 #X obj 157 128 t b b;
 #X obj 16 359 loadbang;
-#X obj 194 444 tgl 15 0 empty empty play 17 7 0 10 -262144 -1 -1 1
+#X obj 194 444 tgl 15 0 empty empty play 17 7 0 10 -262144 -1 -1 0
 1;
 #X msg 252 612 \$2 \$1;
 #X obj 252 634 unpack s f;
@@ -349,7 +349,7 @@ B 0 -8 0 10 -262144 -1 -1 1 256;
 #X obj -43 650 ildasend;
 #X msg -40 619 connect 127.0.0.1 3265;
 #X obj -43 672 route connected;
-#X obj -1 718 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 1
+#X obj -1 718 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 0
 1;
 #X msg -57 582 disconnect;
 #X msg -97 547 connect test-video 3265;
@@ -368,8 +368,6 @@ B 0 -8 0 10 -262144 -1 -1 1 256;
 #X connect 16 0 18 0;
 #X connect 17 0 16 0;
 #X connect 18 0 2 0;
-#X connect 18 1 0 0;
-#X connect 19 0 14 0;
 #X connect 20 0 11 2;
 #X connect 21 0 22 0;
 #X connect 22 0 24 0;
@@ -381,6 +379,7 @@ B 0 -8 0 10 -262144 -1 -1 1 256;
 #X connect 26 1 28 0;
 #X connect 28 0 29 0;
 #X connect 29 0 1 0;
+#X connect 31 0 15 0;
 #X connect 37 0 39 0;
 #X connect 38 0 37 0;
 #X connect 39 0 40 0;
