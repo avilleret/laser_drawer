@@ -7,11 +7,6 @@ numbers, and "rats", and just prints something out for each message. */
 #include "cv.h"
 #endif
 
-#define MAXI(a,b) (a>=b?a:b)
-#define MINI(a,b) (a<=b?a:b)
-#define CLIP(a,b,c) MINI(MAXI(a,b),c)
-#define PT_COORD_MIN -320
-
     /* the data structure for each copy of "ildasend".  In this case we
     only need pd's obligatory header (of type t_object). */
 typedef struct ildasend
@@ -53,48 +48,44 @@ void ildasend_bang(t_ildasend *x)
         return;
     }
     
-    int i;
+    int i, count=0;
     lo_blob* blob[5];
+    lo_message message = lo_message_new();
     
     for (i=0;i<5;i++) {
         blob[i]=NULL;
-        
-        if ( !x->channel[i].arrayname ){
-            pd_error(x,"ildasend: please set 5 tables to receive data (%s is empty)...", x->channel[i].channelname->s_name);
-            return;
-        }
-        
-        x->channel[i].array=(t_garray *)pd_findbyclass(x->channel[i].arrayname, garray_class);
-        if ( !x->channel[i].array ){
-            pd_error(x,"ildasend: can't find array %s",x->channel[i].channelname->s_name);
-            return;
-        }
-        if (!garray_getfloatwords(x->channel[i].array, &x->channel[i].vecsize, &x->channel[i].vec)){
-            pd_error(x,"ildasend: error when getting data from array %s...",x->channel[i].arrayname->s_name);
-        }
-    }
-    
-    if ( !((x->channel[0].vecsize & x->channel[1].vecsize & x->channel[2].vecsize & x->channel[3].vecsize ) == x->channel[4].vecsize) )
-    {
-        pd_error(x, "all tables should have the same size");
-        return;
-    }
-    
-    for (i=0;i<5;i++){
-        if ( sizeof(t_float) == sizeof(t_word) ) {
-            blob[i] = lo_blob_new(x->channel[i].vecsize*sizeof(t_word),x->channel[i].vec);            
-        } else {
-            int j;
-            t_float *data = malloc(x->channel[i].vecsize*sizeof(t_float));
-            for ( j=0; j<x->channel[i].vecsize; j++ ){
-                data[j]=x->channel[i].vec[j].w_float;
+        if ( x->channel[i].arrayname ){
+            x->channel[i].array=(t_garray *)pd_findbyclass(x->channel[i].arrayname, garray_class);
+            if ( !x->channel[i].array ){
+                pd_error(x,"ildasend: can't find array %s",x->channel[i].channelname->s_name);
+                return;
             }
-            blob[i] = lo_blob_new(x->channel[i].vecsize*sizeof(t_float),data);
-            free(data);
+            if (!garray_getfloatwords(x->channel[i].array, &x->channel[i].vecsize, &x->channel[i].vec)){
+                pd_error(x,"ildasend: error when getting data from array %s...",x->channel[i].arrayname->s_name);
+            }
+            if ( sizeof(t_float) == sizeof(t_word) ) {
+                blob[i] = lo_blob_new(x->channel[i].vecsize*sizeof(t_word),x->channel[i].vec);            
+            } else {
+                int j;
+                t_float *data = malloc(x->channel[i].vecsize*sizeof(t_float));
+                for ( j=0; j<x->channel[i].vecsize; j++ ){
+                    data[j]=x->channel[i].vec[j].w_float;
+                }
+                blob[i] = lo_blob_new(x->channel[i].vecsize*sizeof(t_float),data);
+                lo_message_add_blob(message, blob[i]);
+                free(data);
+            }
         }
     }
     
-    lo_send(x->OSC_destination, "/arrays", "bbbbb", blob[0], blob[1], blob[2], blob[3], blob[4]);
+    //~ if ( !((x->channel[0].vecsize & x->channel[1].vecsize & x->channel[2].vecsize & x->channel[3].vecsize ) == x->channel[4].vecsize) )
+    //~ {
+        //~ pd_error(x, "all tables should have the same size");
+        //~ return;
+    //~ }
+    
+    //~ lo_send(x->OSC_destination, "/arrays", "bbbbb", blob[0], blob[1], blob[2], blob[3], blob[4]);
+    lo_send_message(x->OSC_destination, "/arrays", message);
     ildasend_check_senderror(x);
 
     for (i=0;i<5;i++){
@@ -103,6 +94,7 @@ void ildasend_bang(t_ildasend *x)
             blob[i]=NULL;
         }
     }
+    lo_message_free(message);
 }
 
 void ildasend_send_setting(t_ildasend *x)
