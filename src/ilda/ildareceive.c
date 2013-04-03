@@ -80,8 +80,8 @@ static void ildareceive_perspective_correction(t_ildareceive *x, lo_arg **argv, 
         pt2+=2;
 	}
 
-    //~ garray_redraw(x->channel[0].array);
-    //~ garray_redraw(x->channel[1].array);
+    garray_redraw(x->channel[0].array);
+    garray_redraw(x->channel[1].array);
     //~ Release Matrix data
 	if (dst) { 
 		cvReleaseMat(&dst);
