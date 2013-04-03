@@ -53,7 +53,7 @@ static void ildareceive_perspective_correction(t_ildareceive *x, lo_arg **argv, 
         }
     }
     
-    size = x->channel[i].vecsize > size ? size : x->channel[i].vecsize;
+    size = x->channel[0].vecsize > size ? size : x->channel[0].vecsize;
 
 	src=cvCreateMat(size, 1, CV_32FC2 ); 
 	dst=cvCreateMat(size, 1, CV_32FC2 ); 
