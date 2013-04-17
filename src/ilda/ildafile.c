@@ -54,7 +54,7 @@ typedef struct t_ildafile
     size_t      x_wr_offset; /* current write offset into the buffer */
 
     int autoresize;
-    t_ilda_frame frame[MAX_FRAME_NUMBER];
+    t_ilda_frame *frame;
     unsigned int frame_count;
     t_ilda_channel channel[6];
     t_ilda_settings settings;
@@ -71,6 +71,7 @@ static void ildafile_list(t_ildafile *x, t_symbol *s, int argc, t_atom *argv);
 static void ildafile_add(t_ildafile *x, t_symbol *s, int argc, t_atom *argv);
 static void ildafile_clear(t_ildafile *x);
 static void ildafile_settab ( t_ildafile *x, t_symbol* s, unsigned int ac, t_atom* av );
+static void ildafile_autoresize ( t_ildafile *x, t_float val );
 static void *ildafile_new(t_symbol *s, int argc, t_atom *argv);
 static void decode_format_0(t_ildafile* x, unsigned int index);
 static void decode_format_1(t_ildafile* x, unsigned int index);
@@ -93,6 +94,7 @@ void ildafile_setup(void)
     class_addmethod(ildafile_class, (t_method)ildafile_write, gensym("write"), A_DEFSYMBOL, 0);
     class_addmethod(ildafile_class, (t_method)ildafile_clear, gensym("clear"), 0);
     class_addmethod(ildafile_class, (t_method) ildafile_settab, gensym("settab"), A_GIMME, 0);
+    class_addmethod(ildafile_class, (t_method) ildafile_autoresize, gensym("autoresize"), A_FLOAT, 0);
 }
 
 static void *ildafile_new(t_symbol *s, int argc, t_atom *argv)
@@ -140,6 +142,12 @@ static void *ildafile_new(t_symbol *s, int argc, t_atom *argv)
         x->channel[i].arrayname=NULL;
         x->channel[i].vec=NULL;
     }
+    
+    x->frame = malloc(MAX_FRAME_NUMBER*sizeof(t_ilda_frame));
+    if ( x->frame == NULL ) {
+        error("can't allocate frame array");
+        return NULL;
+    }
 
     x->x_info_outlet = outlet_new(&x->x_obj, gensym("info"));
     
@@ -152,6 +160,8 @@ static void ildafile_free(t_ildafile *x)
         freebytes(x->x_buf, x->x_buf_length);
     x->x_buf = NULL;
     x->x_buf_length = 0L;
+    if ( x->frame ) free(x->frame);
+    x->frame = NULL;
 }
 
 static FILE *ildafile_open_path(t_ildafile *x, char *path, char *mode)
@@ -197,7 +207,7 @@ static void ildafile_write(t_ildafile *x, t_symbol *path)
     size_t bytes_written = 0L;
 
     if (0==(x->x_fP = ildafile_open_path(x, path->s_name, "wb")))
-        error("ildafile: Unable to open %s for writing", path->s_name);
+        pd_error(x,"ildafile: Unable to open %s for writing", path->s_name);
     bytes_written = fwrite(x->x_buf, 1L, x->x_length, x->x_fP);
     if (bytes_written != x->x_length) post("ildafile: %ld bytes written != %ld", bytes_written, x->x_length);
     else post("ildafile: wrote %ld bytes to %s", bytes_written, path->s_name);
@@ -213,7 +223,7 @@ static void ildafile_read(t_ildafile *x, t_symbol *path)
 
     if (0==(x->x_fP = ildafile_open_path(x, path->s_name, "rb")))
     {
-        error("ildafile: Unable to open %s for reading", path->s_name);
+        pd_error(x,"Unable to open %s for reading", path->s_name);
         return;
     }
     /* get length of file */
@@ -280,11 +290,11 @@ static void ildafile_read(t_ildafile *x, t_symbol *path)
                 }
             } else if ( format == 2 ){
                 //~ this is a Color Lookup Table Frame
-                error("Color Lookup Table Frame : i don't know how to decode it");
+                pd_error(x,"Color Lookup Table Frame : i don't know how to decode it");
                 count_2++;
             } else if ( format == 3 ){
                 //~ this is a True Color Frame
-                error("True Color Frame : idon't know how to decode it");
+                pd_error(x,"True Color Frame : idon't know how to decode it");
                 count_3++;
             }
         } else {
@@ -334,12 +344,12 @@ static void ildafile_add(t_ildafile *x, t_symbol *s, int argc, t_atom *argv)
             f = atom_getfloat(&argv[i]);
             if (j < -128 || j > 255)
             {
-                error("ildafile: input (%d) out of range [0..255]", j);
+                pd_error(x,"Input (%d) out of range [0..255]", j);
                 return;
             }
             if (j != f)
             {
-                error("ildafile: input (%f) not an integer", f);
+                pd_error(x,"Input (%f) not an integer", f);
                 return;
             }
             if (x->x_buf_length <= x->x_wr_offset)
@@ -347,7 +357,7 @@ static void ildafile_add(t_ildafile *x, t_symbol *s, int argc, t_atom *argv)
                 x->x_buf = resizebytes(x->x_buf, x->x_buf_length, x->x_buf_length+ALLOC_BLOCK_SIZE);
                 if (x->x_buf == NULL)
                 {
-                    error("ildafile: unable to resize buffer");
+                    pd_error(x,"Unable to resize buffer");
                     return;
                 }
                 x->x_buf_length += ALLOC_BLOCK_SIZE;
@@ -357,7 +367,7 @@ static void ildafile_add(t_ildafile *x, t_symbol *s, int argc, t_atom *argv)
         }
         else
         {
-            error("ildafile: input %d not a float", i);
+            pd_error(x,"Input %d not a float", i);
             return;
         }
     }
@@ -382,12 +392,17 @@ static void ildafile_float(t_ildafile *x, t_float val)
     printf("float method\n");
     unsigned int index = (int) val<0?0:val;
     
+    if ( x->frame_count == 0 ){
+        pd_error(x,"no frame to read");
+        return;
+    }
+    
     if ( index > x->frame_count-1 ){
         index = x->frame_count-1;
     }  
     
     if ( !x->channel[0].array || !x->channel[1].array || !x->channel[2].array || !x->channel[3].array || !x->channel[4].array ){
-        error("you should specify x, y, r, g and b before");
+        pd_error(x,"you should specify x, y, r, g and b before");
         return;
     }
 
@@ -417,13 +432,13 @@ static void ildafile_float(t_ildafile *x, t_float val)
 static void ildafile_settab ( t_ildafile *x, t_symbol* s, unsigned int ac, t_atom* av )
 {
     if (ac%2 != 0 ) {
-		error("wong arg number, usage : settab <x|y|r|g|b> <table name>");
+		pd_error(x,"wong arg number, usage : settab <x|y|r|g|b> <table name>");
 		return;
 	}
     unsigned int i=0;
 	for(i=0;i<ac;i++){
         if ( av[i].a_type != A_SYMBOL){
-            error("wrong arg type, settab args must be symbol");
+            pd_error(x,"wrong arg type, settab args must be symbol");
             return;
         }
 	}
@@ -451,47 +466,55 @@ static void ildafile_settab ( t_ildafile *x, t_symbol* s, unsigned int ac, t_ato
             x->channel[index].array=tmp_array;
             x->channel[index].arrayname=av[2*i+1].a_w.w_symbol;
         } else {
-            error("%s: no such array", av[2*i+1].a_w.w_symbol->s_name);           
+            pd_error(x,"%s: no such array", av[2*i+1].a_w.w_symbol->s_name);           
         }
     } 
 }
 
+static void ildafile_autoresize ( t_ildafile *x, t_float val ){
+    x->autoresize = val > 0;
+}
+
 static void decode_format_0(t_ildafile* x, unsigned int index){
    
-   printf("decode format 0\n");
-   unsigned int size=x->frame[index].point_number;
-   
+   printf("decode format 0, index : %d\n", index);
+   int size=x->frame[index].point_number;
+    printf("size : %d\n", size);
    if ( size == 0 ) return; 
     
-    printf("resize table...");
+    printf("resize table...\n");
     //~ resize tables
     int i;
     for ( i=0; i<6; i++ ){
-        x->channel[i].array = (t_garray *)pd_findbyclass(x->channel[i].arrayname, garray_class);
-        if ( !x->channel[i].array ){
-            error("can't find array %s", x->channel[i].arrayname->s_name);
-            x->channel[i].vec=NULL;
-        } else if (!garray_getfloatwords(x->channel[i].array, &(x->channel[i].vecsize), &(x->channel[i].vec))){
-            error("%s: bad template", x->channel[i].arrayname->s_name);
-            x->channel[i].vec=NULL;
-            // return;
-        } else if ( x->channel[i].vecsize != size ){
-            if ( x->autoresize ){
-                garray_resize_long(x->channel[i].array,size);
-                if (garray_getfloatwords(x->channel[i].array, &(x->channel[i].vecsize), &(x->channel[i].vec))){    
-                    error("%s: can't resize correctly", x->channel[i].arrayname->s_name);
-                    x->channel[i].vec=NULL;
-                    // return;
-                } 
-            } else {
-                size = min(x->channel[i].vecsize,size);
+        printf("array : %d\n", i);
+        //~ printf("array : %s\n", x->channel[i].arrayname->s_name);
+        if ( x->channel[i].arrayname != NULL ){
+            x->channel[i].array = (t_garray *)pd_findbyclass(x->channel[i].arrayname, garray_class);
+            if ( !x->channel[i].array ){
+                pd_error(x,"can't find array %s", x->channel[i].arrayname->s_name);
+                x->channel[i].vec=NULL;
+            } else if (!garray_getfloatwords(x->channel[i].array, &(x->channel[i].vecsize), &(x->channel[i].vec))){
+                pd_error(x,"%s: bad template", x->channel[i].arrayname->s_name);
+                x->channel[i].vec=NULL;
+                // return;
+            } else if ( x->channel[i].vecsize != size ){
+                if ( x->autoresize ){
+                    garray_resize_long(x->channel[i].array,size);
+                    if (!garray_getfloatwords(x->channel[i].array, &(x->channel[i].vecsize), &(x->channel[i].vec))){    
+                        pd_error(x,"%s: can't resize correctly", x->channel[i].arrayname->s_name);
+                        x->channel[i].vec=NULL;
+                        // return;
+                    } 
+                } else {
+                    size = min(x->channel[i].vecsize,size);
+                }
             }
         }
     }
     printf("size : %d OK\n", size);
     
     unsigned int offset = x->frame[index].start_id+32; //~ ILDA header is 32 bytes for format 0
-    unsigned int j=0;
+    int j=0;
     i=offset;
     
     printf("update table, frame : %d, %d\n", index, size );
