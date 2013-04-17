@@ -389,7 +389,6 @@ static void ildafile_clear(t_ildafile *x)
 static void ildafile_float(t_ildafile *x, t_float val)
 //~ retrieve given frame
 {
-    printf("float method\n");
     unsigned int index = (int) val<0?0:val;
     
     if ( x->frame_count == 0 ){
@@ -425,8 +424,6 @@ static void ildafile_float(t_ildafile *x, t_float val)
     for ( i=0; i<5 ; i++){
         garray_redraw(x->channel[i].array);
     }
-    
-    printf("float ends ok\n");
 }
 
 static void ildafile_settab ( t_ildafile *x, t_symbol* s, unsigned int ac, t_atom* av )
@@ -477,17 +474,12 @@ static void ildafile_autoresize ( t_ildafile *x, t_float val ){
 
 static void decode_format_0(t_ildafile* x, unsigned int index){
    
-   printf("decode format 0, index : %d\n", index);
    int size=x->frame[index].point_number;
-    printf("size : %d\n", size);
    if ( size == 0 ) return; 
     
-    printf("resize table...\n");
     //~ resize tables
     int i;
     for ( i=0; i<6; i++ ){
-        printf("array : %d\n", i);
-        //~ printf("array : %s\n", x->channel[i].arrayname->s_name);
         if ( x->channel[i].arrayname != NULL ){
             x->channel[i].array = (t_garray *)pd_findbyclass(x->channel[i].arrayname, garray_class);
             if ( !x->channel[i].array ){
@@ -511,13 +503,11 @@ static void decode_format_0(t_ildafile* x, unsigned int index){
             }
         }
     }
-    printf("size : %d OK\n", size);
     
     unsigned int offset = x->frame[index].start_id+32; //~ ILDA header is 32 bytes for format 0
     int j=0;
     i=offset;
     
-    printf("update table, frame : %d, %d\n", index, size );
     for ( j=0 ; j< size ; j++, i+=8) //~ each point is 8 bytes in format 0
     {
         //~ bytes 0 and 1 : X coordinate
@@ -533,9 +523,6 @@ static void decode_format_0(t_ildafile* x, unsigned int index){
 
         float intensity = (float) (1. - ((x->x_buf[i+6] >> 6) & 0x01));
         unsigned char color_id = x->x_buf[i+7];
-        //~ printf("id : %d\t", i);
-        //~ printf("intensity : %f\t",intensity);
-        //~ printf("color_id : %d\n", color_id);
 
         if ( x->settings.invert[2] ){
             if (x->channel[ILDA_CH_R].vec) x->channel[ILDA_CH_R].vec[j].w_float = 1. - (float) ilda_standard_color_palette[color_id][0]/255.*intensity;
@@ -549,7 +536,6 @@ static void decode_format_0(t_ildafile* x, unsigned int index){
             if (x->channel[ILDA_CH_I].vec) x->channel[ILDA_CH_I].vec[j].w_float = intensity;
         }
     }
-    printf("update table OK\n");
         
     t_atom frame_info[7];
     SETSYMBOL(&frame_info[0], x->frame[index].frame_name);
@@ -559,34 +545,24 @@ static void decode_format_0(t_ildafile* x, unsigned int index){
     SETFLOAT(&frame_info[4], x->frame[index].frame_number);
     SETFLOAT(&frame_info[5], x->frame[index].total_frame);
     SETFLOAT(&frame_info[6], x->frame[index].scanner);
-    printf("outlet\n");
-    if (!x->x_info_outlet) printf("invalid outlet\n");
     outlet_anything(x->x_info_outlet, gensym("frame_info"), 7, frame_info);
     
-    printf("decode format 0 OK \n");
-
 }
 
 static void decode_format_1(t_ildafile* x, unsigned int index)
 {
-       printf("decode format 1\n");
-
     int size=x->frame[index].point_number;
     if ( size == 0 ) return; 
 }
 
 static void decode_format_2(t_ildafile* x, unsigned int index)
 {
-       printf("decode format 2\n");
-
     int size=x->frame[index].point_number;
     if ( size == 0 ) return; 
 }
 
 static void decode_format_3(t_ildafile* x, unsigned int index)
 {
-       printf("decode format 3\n");
-
     int size=x->frame[index].point_number;
     if ( size == 0 ) return; 
 }
