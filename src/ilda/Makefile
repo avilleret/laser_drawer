@@ -10,10 +10,10 @@ SOURCES = ildareceive.c ildafile.c ildasend.c
 
 # list all pd objects (i.e. myobject.pd) files here, and their helpfiles will
 # be included automatically
-PDOBJECTS = mypdobject.pd
+PDOBJECTS = 
 
 # example patches and related files, in the 'examples' subfolder
-EXAMPLES =
+EXAMPLES = 01-ILDA-display_vector.pd
 
 # manuals and related files, in the 'manual' subfolder
 MANUAL =
