@@ -1,0 +1,152 @@
+eeschema (2013-mar-13)-testing  >> Creation date: Tue 07 May 2013 12:06:39 CEST
+#Cmp ( order = Reference )
+| C1         220p        
+| C2         220p        
+| C3         220p        
+| C4         220p        
+| C5         220p        
+| C6         220p        
+| C7         220p        
+| C8         220p        
+| C9         220p        
+| C10        220p        
+| C11        100nF       
+| C12        100nF       
+| C13        100nF       
+| C14        100nF       
+| C15        100nF       
+| C16        100nF       
+| C17        100nF       
+| C18        100nF       
+| C19        100nF       
+| C20        100nF       
+| C21        100µF      
+| C22        100µF      
+| D1         DIODE       
+| JP1                    
+| JP2                    
+| JP3                    
+| JP4                    
+| JP5                    
+| JP6                    
+| P1         Xin         
+| P2         Yin         
+| P3         Rin         
+| P4         Gin         
+| P5         Bin         
+| P6         Power       
+| P7         SUB-D25 FC  
+| R1         649         
+| R2         649         
+| R3         649         
+| R4         649         
+| R5         649         
+| R6         10k         
+| R7         10k         
+| R8         10k         
+| R9         10k         
+| R10        10k         
+| R11        10k         
+| R12        10k         
+| R13        10k         
+| R14        10k         
+| R15        10k         
+| R16        100         
+| R17        100         
+| R18        100         
+| R19        100         
+| R20        100         
+| R21        100         
+| R22        100         
+| R23        100         
+| R24        100         
+| R25        100         
+| U1         NE5532      
+| U2         NE5532      
+| U3         NE5532      
+| U4         NE5532      
+| U5         NE5532      
+| VR1        10k         
+| VR2        10k         
+| VR3        10k         
+| VR4        10k         
+| VR5        10k         
+| XP1        XP-POWER-IH0509S
+#End Cmp
+
+#Cmp ( order = Value )
+| 220p         C1        
+| 220p         C2        
+| 220p         C3        
+| 220p         C4        
+| 220p         C5        
+| 220p         C6        
+| 220p         C7        
+| 220p         C8        
+| 220p         C9        
+| 220p         C10       
+| 100nF        C11       
+| 100nF        C12       
+| 100nF        C13       
+| 100nF        C14       
+| 100nF        C15       
+| 100nF        C16       
+| 100nF        C17       
+| 100nF        C18       
+| 100nF        C19       
+| 100nF        C20       
+| 100µF       C21       
+| 100µF       C22       
+| DIODE        D1        
+|              JP1       
+|              JP2       
+|              JP3       
+|              JP4       
+|              JP5       
+|              JP6       
+| Xin          P1        
+| Yin          P2        
+| Rin          P3        
+| Gin          P4        
+| Bin          P5        
+| Power        P6        
+| SUB-D25 FC   P7        
+| 100          R16       
+| 100          R17       
+| 100          R18       
+| 100          R19       
+| 100          R20       
+| 100          R21       
+| 100          R22       
+| 100          R23       
+| 100          R24       
+| 100          R25       
+| 649          R1        
+| 649          R2        
+| 649          R3        
+| 649          R4        
+| 649          R5        
+| 10k          R6        
+| 10k          R7        
+| 10k          R8        
+| 10k          R9        
+| 10k          R10       
+| 10k          R11       
+| 10k          R12       
+| 10k          R13       
+| 10k          R14       
+| 10k          R15       
+| NE5532       U1        
+| NE5532       U2        
+| NE5532       U3        
+| NE5532       U4        
+| NE5532       U5        
+| 10k          VR1       
+| 10k          VR2       
+| 10k          VR3       
+| 10k          VR4       
+| 10k          VR5       
+| XP-POWER-IH0509S XP1       
+#End Cmp
+
+#End List

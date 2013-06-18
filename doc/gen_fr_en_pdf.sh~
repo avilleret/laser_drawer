@@ -1,0 +1,12 @@
+#!/bin/bash
+_DIR=$(dirname $(readlink -f $0))
+cd "$_DIR" # This is the directory where this file is (should be same as .tex files)
+pdflatex -synctex=1 -jobname=laser_drawer -interaction=nonstopmode main-fr.tex
+rtn=$?
+echo $rtn
+sleep 1
+pdflatex -synctex=1 -jobname=laser_drawer-en -interaction=nonstopmode main-en.tex
+rtn2=$?
+
+echo $(($rtn+$rtn2))
+exit $(($rtn+$rtn2))

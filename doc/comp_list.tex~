@@ -1,0 +1,81 @@
+\begin{table}
+ \begin{tabular}{|l|l|p{3cm}|l|l|}
+\hline 
+C1 & $220\unit{pF}$ & & R1 & $649\unit{\Omega}$ \\
+\hline 
+C2 & $220\unit{pF}$ & & R2 & $649\unit{\Omega}$ \\
+\hline 
+C3 & $220\unit{pF}$ & & R3 & $649\unit{\Omega}$ \\
+\hline
+C4 & $220\unit{pF}$ & & R4 & $649\unit{\Omega}$ \\
+\hline
+C5 & $220\unit{pF}$ & & R5 & $649\unit{\Omega}$ \\
+\hline
+C6 & $220\unit{pF}$ & & R6 & $10\unit{k\Omega}$ \\
+\hline
+C7 & $220\unit{pF}$ & & R7 & $10\unit{k\Omega}$ \\
+\hline
+C8 & $220\unit{pF}$ & & R8 & $10\unit{k\Omega}$ \\
+\hline
+C9 & $220\unit{pF}$ & & R9 & $10\unit{k\Omega}$ \\
+\hline 
+C10 & $220\unit{pF}$ & & R10 & $10\unit{k\Omega}$ \\
+\hline 
+C11 & $100\unit{nF}$ & & R11 & $10\unit{k\Omega}$ \\
+\hline 
+C12 & $100\unit{nF}$ & & R12 & $10\unit{k\Omega}$ \\
+\hline 
+C13 & $100\unit{nF}$ & & R13 & $10\unit{k\Omega}$ \\
+\hline 
+C14 & $100\unit{nF}$ & & R14 & $10\unit{k\Omega}$ \\
+\hline 
+C15 & $100\unit{nF}$ & & R15 & $10\unit{k\Omega}$ \\
+\hline 
+C16 & $100\unit{nF}$ & & R16 & $100\unit{\Omega}$ \\
+\hline 
+C17 & $100\unit{nF}$ & & R17 & $100\unit{\Omega}$ \\
+\hline 
+C18 & $100\unit{\mu F}$ & & R18 & $100\unit{\Omega}$ \\
+\hline 
+C19 & $100\unit{\mu F}$ & & R19 & $100\unit{\Omega}$ \\
+\hline 
+JP1 & JUMPER & & R20 & $100\unit{\Omega}$ \\
+\hline 
+JP2 & JUMPER & & R21 & $100\unit{\Omega}$ \\
+\hline 
+JP3 & JUMPER & & R22 & $100\unit{\Omega}$ \\
+\hline 
+P1 & Xin & & R23 & $100\unit{\Omega}$ \\
+\hline 
+P2 & Xin & & R24 & $100\unit{\Omega}$ \\
+\hline 
+P3 & SUB-D 25 FC & & R25 & $100\unit{\Omega}$ \\
+\hline 
+P4 & Power & & U1 & NE5532 \\
+\hline 
+P5 & Rin & & U2 & NE5532 \\
+\hline 
+P6 & Gin & & U3 & NE5532 \\
+\hline 
+P7 & Bin & & U4 & NE5532 \\
+\hline 
+   &     & & U5 & NE5532 \\
+\hline 
+   &     & & VR1 & $10\unit{k\Omega}$ \\
+\hline 
+   &     & & VR2 & $10\unit{k\Omega}$ \\
+\hline 
+   &     & & VR3 & $10\unit{k\Omega}$ \\
+\hline 
+   &     & & VR4 & $10\unit{k\Omega}$ \\
+\hline 
+   &     & & VR5 & $10\unit{k\Omega}$ \\
+\hline 
+   &     & & XP1 & XP-POWER IU0509S
+\hline 
+   &     & & 
+\hline 
+\end{tabular}
+ \caption{\label{tab:comp_list} Liste des composants utilisés dans le circuit}
+\end{table}
+

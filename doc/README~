@@ -1,0 +1,10 @@
+ce dossier contient les sources latex du rapport
+
+le document principal est laser_drawer.tex qui contient les deux versions : française (référence) et anglaise (traduction)
+
+le script gen_fr_en_pdf.sh génère 4 fichiers PDF :  laser_drawer.pdf en français et laser_drawer-en.pdf en anglais et les versions compressées correspondantes avec le suffixe -web dans le nom de fichier
+
+les fichiers intermédiaires main-fr.tex et main-en.tex contiennent les définissions de langues pour l'hyphénation et la sélections des parties à inclure.
+
+les images sont dans le dossier images/ et dans le dossier ../laser_drawer_schema_v2/ pour les schéma électronique
+pour la génération des schéma électronique, voir ../laser_drawer_schema_v2/README
