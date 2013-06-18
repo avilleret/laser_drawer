@@ -1,4 +1,4 @@
-#N canvas 358 324 1175 652 10;
+#N canvas 594 195 1175 652 10;
 #N canvas 345 182 494 344 META 0;
 #X text 12 125 HELP_PATCH_AUTHORS "pd meta" information added by Jonathan
 Wilkes for Pd version 0.42.;
@@ -242,6 +242,7 @@ scan_freq framesize blanking_off;
 #X obj 720 153 loadbang;
 #X msg 721 205 \; pd dsp 1;
 #X obj 721 175 del 1000;
+#X obj 654 371 s framesize;
 #X connect 1 0 20 0;
 #X connect 2 0 21 0;
 #X connect 3 0 23 0;
@@ -269,6 +270,7 @@ scan_freq framesize blanking_off;
 #X connect 31 0 5 0;
 #X connect 31 1 33 0;
 #X connect 31 2 34 0;
+#X connect 41 0 57 0;
 #X connect 43 0 18 0;
 #X connect 43 1 29 0;
 #X connect 43 2 30 0;

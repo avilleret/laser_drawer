@@ -1,0 +1,136 @@
+#N canvas 104 286 1099 739 10;
+#N canvas 341 195 494 344 META 0;
+#X text 12 25 LICENSE GPL v2;
+#X text 12 5 KEYWORDS control;
+#X text 12 45 DESCRIPTION ilda object class;
+#X text 12 85 AUTHOR Antoine Villeret;
+#X text 12 65 INLET_0 bind unbind settab;
+#X restore -31 37 pd META;
+#X floatatom -41 544 5 0 0 3 offset_x - -;
+#X floatatom 19 544 5 0 0 3 offset_y - -;
+#X floatatom 79 544 5 0 0 3 scale_x - -;
+#X floatatom 139 544 5 0 0 3 scale_y - -;
+#X floatatom 442 544 5 0 0 3 intensity - -;
+#X floatatom 527 519 5 0 0 3 end_line_correction - -;
+#X floatatom 648 521 5 0 0 3 scan_freq - -;
+#X obj 878 245 table drawX 32;
+#X obj 878 265 table drawY 32;
+#X obj 878 285 table drawR 32;
+#X obj 878 305 table drawG 32;
+#X obj 878 325 table drawB 32;
+#X msg 199 328 settab x drawX y drawY r drawR g drawG b drawB;
+#X obj 196 543 tgl 15 0 empty empty invert_x 0 25 0 10 -262144 -1 -1
+0 1;
+#X obj 256 543 tgl 15 0 empty empty invert_y 0 25 0 10 -262144 -1 -1
+0 1;
+#X obj 917 533 tgl 15 0 empty empty blanking_off 0 25 0 10 -262144
+-1 -1 0 1;
+#X obj 312 543 tgl 15 0 empty empty invert_blanking 0 25 0 10 -262144
+-1 -1 0 1;
+#X obj 248 394 ildareceive;
+#X msg 145 274 bind 3265;
+#X msg 168 297 unbind;
+#X obj -41 486 unpack 0 0 0;
+#X obj -41 597 s \$0-offset_x;
+#X obj 19 661 s \$0-offset_y;
+#X obj 139 661 s \$0-scale_y;
+#X obj 79 615 s \$0-scale_x;
+#X obj 196 615 s \$0-invert_x;
+#X obj 256 660 s \$0-invert_y;
+#X obj 312 700 s \$0-invert_blanking;
+#X obj 917 604 s \$0-blanking_off;
+#X obj 442 630 s \$0-intensity;
+#X obj 79 488 unpack 0 0 0;
+#X obj 196 478 unpack 0 0 0;
+#X obj 442 519 unpack 0 0 0;
+#X text 214 274 select a port to listen to and start server;
+#X text 214 295 stop server and free the port;
+#X text 487 328 define on which tables data should be send;
+#X text 493 341 tables are dynamically resized;
+#X obj 721 523 tgl 15 0 empty empty connected 17 7 0 10 -262144 -1
+-1 0 1;
+#X floatatom 838 535 5 0 0 3 frame_size - -;
+#X obj 154 41 cnv 15 400 200 empty empty empty 20 12 0 14 -204786 -66577
+0;
+#X text 169 43 ildareceive;
+#X text 186 56 by Antoine Villeret - EnsadLab 2013;
+#X text 169 77 ildareceive listen to an UDP port for incomming OSC
+messages.;
+#N canvas 136 308 706 435 OSC_format 0;
+#X text 111 21 Here is a list of supported OSC messages and their meaning
+:;
+#X text 11 60 Messages;
+#X text 11 80 /arrays;
+#X text 211 60 Paramètres;
+#X text 211 80 bbb[b][b];
+#X text 301 60 Desciption;
+#X text 301 80 Update tables with blobs data.;
+#X text 301 92 All blobs should have the same size.;
+#X text 301 103 3 \, 4 or 5 blobs are expected \, and update respectively
+X \, Y \, red \, green and blue channels;
+#X text 11 160 /setting/offset;
+#X text 211 160 fff;
+#X text 301 160 Offset for channels X \, Y and global intensity;
+#X text 211 180 fff;
+#X text 211 200 fff;
+#X text 11 180 /setting/scale;
+#X text 301 180 Scale for channels X \, Y and global intensity;
+#X text 11 200 /setting/invert;
+#X text 301 131 data are 32bit float;
+#X text 301 200 Inversion for channels X \, Y and global intensity
+;
+#X text 211 220 fff;
+#X text 11 220 /setting/intensity;
+#X text 301 220 Intensity for each color : red \, green and blue;
+#X text 11 240 /setting/blanking_off;
+#X text 211 240 f;
+#X text 301 240 Disable laser blanking;
+#X text 211 260 f;
+#X text 11 260 /setting/angle_correction;
+#X text 301 260 Not supported yet;
+#X text 211 280 f;
+#X text 11 280 /setting/end_line_correction;
+#X text 301 280 Offset the color tables to correct end line on poor
+laser;
+#X text 211 300 f;
+#X text 11 300 /setting/perspective_correction;
+#X text 301 300 Enable perspective correction (need OpenCV);
+#X text 11 320 /setting/dst_point;
+#X text 211 320 ffffffff;
+#X text 301 320 Set 4 projection corners coordinates to correct perspective.
+;
+#X restore 258 124 pd OSC_format;
+#X text 163 109 Thoses messages are described in the [pd OSC_format]
+subpatch. -->;
+#X obj 248 424 route offset scale invert intensity end_line_correction
+scan_freq connected framesize blanking_off;
+#X connect 1 0 22 0;
+#X connect 2 0 23 0;
+#X connect 3 0 25 0;
+#X connect 4 0 24 0;
+#X connect 5 0 30 0;
+#X connect 13 0 18 0;
+#X connect 14 0 26 0;
+#X connect 15 0 27 0;
+#X connect 16 0 29 0;
+#X connect 17 0 28 0;
+#X connect 18 0 46 0;
+#X connect 19 0 18 0;
+#X connect 20 0 18 0;
+#X connect 21 0 1 0;
+#X connect 21 1 2 0;
+#X connect 31 0 3 0;
+#X connect 31 1 4 0;
+#X connect 32 0 14 0;
+#X connect 32 1 15 0;
+#X connect 32 2 17 0;
+#X connect 33 0 5 0;
+#X connect 46 0 21 0;
+#X connect 46 1 31 0;
+#X connect 46 2 32 0;
+#X connect 46 3 33 0;
+#X connect 46 4 6 0;
+#X connect 46 5 7 0;
+#X connect 46 6 38 0;
+#X connect 46 7 39 0;
+#X connect 46 8 16 0;
