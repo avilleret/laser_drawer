@@ -1,4 +1,4 @@
-EESchema Schematic File Version 2  date Sat 11 May 2013 13:52:43 CEST
+EESchema Schematic File Version 2
 LIBS:power
 LIBS:device
 LIBS:transistors
@@ -121,14 +121,12 @@ F 3 "" H 6300 9700 60  0000 C CNN
 	1    6300 9700
 	0    1    1    0   
 $EndComp
-NoConn ~ 6350 2450
 NoConn ~ 6350 2850
 NoConn ~ 6350 2950
 NoConn ~ 6350 3050
 NoConn ~ 6350 3150
 NoConn ~ 6350 3250
 NoConn ~ 6350 3350
-NoConn ~ 6350 3750
 NoConn ~ 6350 4150
 NoConn ~ 6350 4250
 NoConn ~ 6350 4350
@@ -1775,4 +1773,10 @@ Wire Wire Line
 	6200 8950 6200 9350
 Text Label 6200 9200 1    60   ~ 0
 Vin
+Wire Wire Line
+	6350 2450 5900 2450
+Wire Wire Line
+	5900 2450 5900 3750
+Wire Wire Line
+	5900 3750 6350 3750
 $EndSCHEMATC
